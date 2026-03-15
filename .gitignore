@@ -1,0 +1,61 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno
+.env
+.env.dev
+
+# Prisma
+/generated/prisma
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+*~
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.project
+.classpath
+.settings/
+
+# Archivos subidos (excepto defaults)
+files/*
+files/avatars/*
+!files/avatars/default.png
+!files/avatars/.gitkeep
+files/materiales/principales/*
+!files/materiales/principales/.gitkeep
+files/materiales/galeria/*
+!files/materiales/galeria/.gitkeep
+files/temp/*
+!files/temp/.gitkeep
+
+# Cache
+.npm
+.eslintcache
+*.tsbuildinfo
+
+# Build / Dist
+dist/
+build/
+
+# Datos fuente de importación y scripts internos
+prisma/datasource/
+prisma/import_data.js
+
+# Archivos internos de desarrollo
+swagger-progress.md
+

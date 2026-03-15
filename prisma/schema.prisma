@@ -1,0 +1,390 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MODELOS
+// ============================================
+
+model Zona {
+  id           Int       @id @default(autoincrement())
+  nombre       String    @unique
+  direccion    String?
+  codigoPostal String?
+  localidad    String?
+  activo       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  usuarios         Usuario[]
+  establecimientos Establecimiento[]
+  gerencias        GerenciaZona[]
+
+  @@index([activo])
+}
+
+model Usuario {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String?
+  nombre        String?
+  apellido1     String?
+  apellido2     String?
+  avatar        String?
+  avatarEntraId String?
+  numeroSAP     String?              // Identificador SAP para futura integración EntraID
+  nombreCompleto String?             // nombre tal cual viene de SAP/EntraID
+  rol           Rol       @default(DELEGADO)
+  zonaId        Int?
+  direccion     String?
+  codigoPostal  String?
+  localidad     String?
+  provincia     String?
+  telefono      String?
+  nif           String?
+  destMercancia String?
+  activo        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  zona               Zona?            @relation(fields: [zonaId], references: [id])
+  establecimientos   Establecimiento[]
+  solicitudes        Solicitud[]
+
+  @@index([email])
+  @@index([rol])
+  @@index([activo])
+  @@index([zonaId])
+}
+
+model Establecimiento {
+  id            Int                  @id @default(autoincrement())
+  tipo          TipoEstablecimiento  @default(FARMACIA)
+  nombre        String
+  nif           String?              @unique
+  codigoInterno String?              // Código int. cliente (para futura integración CRM)
+  codigoERP     String?              // Código ERP (para futura integración CRM)
+  direccion     String?
+  codigoPostal  String?
+  localidad     String?
+  provincia     String?
+  telefono      String?
+  lengua        Lengua               @default(ES)
+  sanibrick      String?
+  territoryDescr String?
+  panel          String?
+  ubicacion     String?
+  activo        Boolean              @default(true)
+
+  zonaId        Int?                 // Zona directa del establecimiento (de DMDescr en importación)
+  zona          Zona?                @relation(fields: [zonaId], references: [id])
+
+  delegadoId    Int?                 // Opcional: puede importarse sin delegado asignado
+  delegado      Usuario?             @relation(fields: [delegadoId], references: [id])
+
+  solicitudes   Solicitud[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([zonaId])
+  @@index([delegadoId])
+  @@index([nif])
+  @@index([activo])
+  @@index([tipo])
+  @@index([codigoInterno])
+  @@index([codigoERP])
+}
+
+model Proveedor {
+  id            Int        @id @default(autoincrement())
+  nombre        String
+  nif           String?    @unique
+  direccion     String?
+  codigoPostal  String?
+  localidad     String?
+  telefono      String?
+  contacto      String?
+  observaciones String?    @db.Text
+  activo        Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  emails              ProveedorEmail[]
+  materiales          Material[]
+  solicitudesEnviadas Solicitud[]
+
+  @@index([activo])
+  @@index([nif])
+}
+
+model ProveedorEmail {
+  id          Int                @id @default(autoincrement())
+  proveedorId Int
+  email       String
+  tipo        TipoEmailProveedor @default(DEFAULT)
+  createdAt   DateTime           @default(now())
+
+  proveedor   Proveedor          @relation(fields: [proveedorId], references: [id], onDelete: Cascade)
+
+  @@unique([proveedorId, tipo])
+  @@index([proveedorId])
+}
+
+model Marca {
+  id         Int        @id @default(autoincrement())
+  nombre     String     @unique
+  activo     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  materiales           Material[]
+  solicitudesConMarca  Solicitud[]
+
+  @@index([nombre])
+  @@index([activo])
+}
+
+model Material {
+  id                         Int                  @id @default(autoincrement())
+  codigo                     String?              @unique
+  nombre                     String
+
+  marcaId                    Int?
+  marca                      Marca?               @relation(fields: [marcaId], references: [id])
+
+  proveedorId                Int?
+  proveedor                  Proveedor?           @relation(fields: [proveedorId], references: [id])
+
+  descripcion                String?              @db.Text
+  imagen                     String?
+  thumbnail                  String?
+  imagenes                   String?              @db.Text
+
+  precio                     Float?               // Precio interno (admin) — usado para calcular importeTotal
+  precioPublico              Float?               // Precio visible para usuarios (delegados/gerentes)
+  tipoPrecio                 TipoPrecio           @default(UNIDAD)
+
+  orientacion                OrientacionMaterial?
+  permiteAltoAncho           Boolean              @default(false)
+  permitePersonalizar        Boolean              @default(false)
+  requiereNombreFarmacia     Boolean              @default(false)
+  permiteTalla               Boolean              @default(false)
+  permitePersonalizacionBata Boolean              @default(false)
+  permiteMarca               Boolean              @default(false)
+
+  visibleParaDelegado        Boolean              @default(true)
+  tipoEstablecimiento        TipoEstablecimiento?
+  permiteEvento              Boolean              @default(false)
+
+  activo                     Boolean              @default(true)
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
+
+  solicitudes                Solicitud[]
+
+  @@index([marcaId])
+  @@index([proveedorId])
+  @@index([activo])
+  @@index([codigo])
+}
+
+model Configuracion {
+  id                    Int      @id @default(1)
+
+  // Límites de gasto
+  limiteUsuarioAnual    Float?
+
+  // Soporte
+  soporteNombre         String?
+  soporteEmail          String?
+  soporteTelefono       String?
+
+  // Identidad
+  appNombre             String?  @default("App Material Farmacias")
+
+  // Aviso global (banner en la app)
+  avisoActivo           Boolean  @default(false)
+  avisoTexto            String?  @db.Text
+
+  // Notificaciones de solicitudes completadas
+  emailAdmin                  String?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Solicitud {
+  id                Int             @id @default(autoincrement())
+  usuarioId         Int
+  establecimientoId Int?
+  eventoNombre      String?
+  materialId        Int
+
+  estado            EstadoSolicitud @default(PENDIENTE)
+  importeTotal      Float           @default(0)
+
+  // Campos del material en el momento de la solicitud
+  altoCm                   Int?
+  anchoCm                  Int?
+  orientacion              OrientacionMaterial?
+  personalizarNombre       Boolean              @default(false)
+  descripcionPersonalizada String?              @db.Text
+  talla                    TallaBata?
+  personalizacionBata      String?              @db.Text
+  marcasBata               String?
+
+  // Marca seleccionada (genérico, cuando permiteMarca=true en el material)
+  marcaId                  Int?
+  marca                    Marca?               @relation(fields: [marcaId], references: [id])
+
+  // Dirección de entrega indicada por el solicitante (opcional)
+  // Prioridad en EN_FABRICACION: esta dirección → usuario → zona
+  direccionEntrega         String?
+  codigoPostalEntrega      String?
+  localidadEntrega         String?
+  provinciaEntrega         String?
+  telefonoEntrega          String?
+
+  // Proveedor seleccionado al pasar a EN_FABRICACION (puede diferir del proveedor del material)
+  proveedorEnviadoId       Int?
+  proveedorEnviado         Proveedor?           @relation(fields: [proveedorEnviadoId], references: [id])
+
+  // Snapshot de dirección de entrega (se fija al pasar a EN_FABRICACION)
+  direccionEntregaFinal    String?
+  codigoPostalEntregaFinal String?
+  localidadEntregaFinal    String?
+  provinciaEntregaFinal    String?
+  telefonoEntregaFinal     String?
+
+  // Token único para que el fabricante confirme el envío sin autenticación
+  tokenFabricante          String?              @unique
+
+  // Archivos adjuntos de personalización (JSON: array de rutas relativas)
+  archivosPersonalizacion  String?              @db.Text
+
+  // Avisos de presupuesto (límites blandos)
+  avisoLimiteUsuario       Boolean              @default(false)
+
+  observaciones            String?   @db.Text
+
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  aprobadaEn               DateTime?
+  rechazadaEn              DateTime?
+  enviadaProveedorEn       DateTime?
+  completadaEn             DateTime?
+
+  usuario                  Usuario          @relation(fields: [usuarioId], references: [id])
+  establecimiento          Establecimiento? @relation(fields: [establecimientoId], references: [id])
+  material                 Material         @relation(fields: [materialId], references: [id])
+  fotosInstalacion         FotoInstalacion[]
+
+  @@index([usuarioId])
+  @@index([establecimientoId])
+  @@index([materialId])
+  @@index([marcaId])
+  @@index([proveedorEnviadoId])
+  @@index([estado])
+  @@index([createdAt])
+}
+
+model FotoInstalacion {
+  id          Int       @id @default(autoincrement())
+  solicitudId Int
+  url         String
+  createdAt   DateTime  @default(now())
+
+  solicitud   Solicitud @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+
+  @@index([solicitudId])
+}
+
+model Gerencia {
+  id           Int            @id @default(autoincrement())
+  nombre       String         @unique
+  descripcion  String?        @db.Text
+  direccion    String?
+  codigoPostal String?
+  localidad    String?
+  provincia    String?
+  activo       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  zonas        GerenciaZona[]
+
+  @@index([activo])
+}
+
+model GerenciaZona {
+  gerenciaId Int
+  zonaId     Int
+
+  gerencia   Gerencia @relation(fields: [gerenciaId], references: [id], onDelete: Cascade)
+  zona       Zona     @relation(fields: [zonaId], references: [id], onDelete: Cascade)
+
+  @@id([gerenciaId, zonaId])
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Rol {
+  ADMIN
+  GERENTE
+  DELEGADO
+}
+
+enum TipoEstablecimiento {
+  FARMACIA
+  CLINICA
+}
+
+enum Lengua {
+  ES
+  CA
+  EU
+  GL
+}
+
+enum TipoPrecio {
+  UNIDAD   // precio fijo por unidad
+  METRO2   // precio × (altoCm × anchoCm / 10000)
+}
+
+enum OrientacionMaterial {
+  HORIZONTAL
+  VERTICAL
+  CUADRADO
+}
+
+enum TallaBata {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+  XXXL
+}
+
+enum EstadoSolicitud {
+  PENDIENTE
+  RECHAZADA
+  EN_FABRICACION
+  ENVIADA
+  COMPLETADA
+}
+
+enum TipoEmailProveedor {
+  DEFAULT
+  PRESUPUESTOS
+  PRODUCCION
+  FACTURACION
+}
