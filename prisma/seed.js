@@ -129,8 +129,8 @@ async function main() {
       data: {
         email:        'admin@example.com',
         password:     hashedPassword,
-        nombre:       'Alberto',
-        apellido1:    'Sancho',
+        nombre:       'Ejemplo',
+        apellido1:    'Admin',
         rol:          'ADMIN',
         avatar:       avatarDefault,
         direccion:    'Calle Admin, 1',
@@ -143,9 +143,9 @@ async function main() {
     // Gerente Zona Madrid Centro
     prisma.usuario.create({
       data: {
-        email:        'gerente1@example.com',
+        email:        'gerente@example.com',
         password:     hashedPassword,
-        nombre:       'Alberto',
+        nombre:       'Ejemplo',
         apellido1:    'Gerente',
         rol:          'GERENTE',
         avatar:       avatarDefault,
@@ -207,9 +207,9 @@ async function main() {
     // ── DELEGADOS MADRID CENTRO ───────────────
     prisma.usuario.create({
       data: {
-        email:        'delegado1@example.com',
+        email:        'delegado@example.com',
         password:     hashedPassword,
-        nombre:       'Alberto',
+        nombre:       'Ejemplo',
         apellido1:    'Delegado',
         rol:          'DELEGADO',
         avatar:       avatarDefault,

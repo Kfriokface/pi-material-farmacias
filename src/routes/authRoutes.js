@@ -67,7 +67,7 @@ module.exports = router;
  *             type: object
  *             required: [email, password]
  *             properties:
- *               email:    { type: string, example: "admin@farmacias.com" }
+ *               email:    { type: string, example: "admin@example.com" }
  *               password: { type: string, example: "password123" }
  *     responses:
  *       200:

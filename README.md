@@ -18,14 +18,14 @@ El PI se entrega en dos fases:
 
 ## Descripción de la aplicación
 
-La aplicación permite a una red de comerciales (delegados) solicitar material promocional (vinilos, batas, folletos, etc.) para las farmacias que gestionan. Los administradores aprueban, gestionan y hacen seguimiento de cada solicitud hasta su entrega.
+La aplicación permite a una red de comerciales (gerentes y delegados) solicitar material promocional (vinilos, batas, folletos, etc.) para las farmacias que gestionan. Los administradores aprueban, gestionan y hacen seguimiento de cada solicitud hasta su entrega.
 
 ### Roles
 
 | Rol | Descripción |
 |---|---|
 | **ADMIN** | Acceso total. Gestiona usuarios, zonas, materiales, proveedores y establecimientos. Aprueba o rechaza solicitudes y las mueve por el flujo de estados. |
-| **GERENTE** | Ve las farmacias y solicitudes de su zona. Puede crear solicitudes para los establecimientos de su zona y para eventos. |
+| **GERENTE** | Ve las farmacias y solicitudes de su zona. Puede crear solicitudes para los establecimientos (farmacias y clínicas) de su zona y para eventos y marcarlas como completadas una vez recibido el material. |
 | **DELEGADO** | Ve únicamente sus farmacias asignadas y sus propias solicitudes. Puede crear solicitudes y marcarlas como completadas una vez recibido el material. |
 
 ### Flujo de una solicitud
@@ -37,8 +37,8 @@ PENDIENTE → EN_FABRICACION → ENVIADA → COMPLETADA
 
 - El **DELEGADO** o **GERENTE** crea la solicitud (`PENDIENTE`).
 - El **ADMIN** la aprueba (`EN_FABRICACION`) o rechaza. Al aprobar, se fija la dirección de entrega y se envía un email al fabricante/proveedor con un enlace de confirmación.
-- El **fabricante** confirma el envío accediendo al enlace (`ENVIADA`).
-- El **DELEGADO** marca la solicitud como completada cuando recibe el material (`COMPLETADA`).
+- El **fabricante** confirma el envío accediendo al enlace enviado por correo (`ENVIADA`).
+- El **DELEGADO** o **GERENTE** marca su propia solicitud como completada cuando recibe el material (`COMPLETADA`).
 
 ---
 
@@ -124,9 +124,13 @@ El seed carga datos ficticios:
 - 22 establecimientos (16 farmacias, 6 clínicas)
 - Materiales y proveedores de ejemplo
 
-**Credenciales de acceso (todos los usuarios):** `password123`
+**Contraseña de todos los usuarios:** `password123`
 
-**Usuario admin:** consultar el seed en `prisma/seed.js` o listar usuarios tras el seed.
+| Rol | Email |
+|---|---|
+| ADMIN | `admin@example.com` |
+| GERENTE | `gerente@example.com` |
+| DELEGADO | `delegado@example.com` |
 
 ---
 
