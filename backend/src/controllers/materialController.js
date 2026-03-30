@@ -19,14 +19,17 @@ const createMaterial = async (req, res) => {
       descripcion,
       precio,
       tipoPrecio                 = 'UNIDAD',
+      orientacion,
+      altoMaxCm,
+      anchoMaxCm,
       permiteAltoAncho           = false,
       permitePersonalizar        = false,
+      lenguas,
       requiereNombreFarmacia     = false,
       permiteTalla               = false,
       permitePersonalizacionBata = false,
       visibleParaDelegado        = true,
       tipoEstablecimiento,
-      permiteEvento              = false,
       permiteMarca               = false,
       precioPublico,
       activo                     = true,
@@ -56,14 +59,17 @@ const createMaterial = async (req, res) => {
         descripcion,
         precio,
         tipoPrecio,
+        orientacion:               orientacion || null,
+        altoMaxCm:                 altoMaxCm   ? parseInt(altoMaxCm)   : null,
+        anchoMaxCm:                anchoMaxCm  ? parseInt(anchoMaxCm)  : null,
         permiteAltoAncho,
         permitePersonalizar,
+        lenguas:                   permitePersonalizar ? (lenguas || null) : null,
         requiereNombreFarmacia,
         permiteTalla,
         permitePersonalizacionBata,
         visibleParaDelegado,
-        tipoEstablecimiento:       tipoEstablecimiento || null,
-        permiteEvento,
+        tipoEstablecimiento,
         permiteMarca,
         precioPublico:             precioPublico !== undefined ? parseFloat(precioPublico) || null : null,
         activo,
@@ -110,29 +116,25 @@ const createMaterial = async (req, res) => {
  */
 const getAllMaterials = async (req, res) => {
   try {
-    const { page = 1, limit = 20, proveedorId, search, tipoEstablecimiento } = req.query;
+    const { page = 1, limit = 20, proveedorId, search, tipoEstablecimiento, marcaId } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
     const where = { ...req.filterActivo };
 
-    // DELEGADO solo ve materiales marcados como 'visibles para delegados' y que no sean 'clínicas'
+    // DELEGADO solo ve materiales visibles para delegados y solo de tipo FARMACIA
     if (req.user?.rol === 'DELEGADO') {
       where.visibleParaDelegado = true;
-      where.OR = [
-        { tipoEstablecimiento: 'FARMACIA' },
-        { tipoEstablecimiento: null }
-      ];
+      where.tipoEstablecimiento = 'FARMACIA';
     }
 
-    if (tipoEstablecimiento === 'EVENTO') {
-      where.permiteEvento = true;
-    } else if (tipoEstablecimiento) {
+    if (tipoEstablecimiento) {
       where.tipoEstablecimiento = tipoEstablecimiento;
     }
 
     if (proveedorId) where.proveedorId = parseInt(proveedorId);
+    if (marcaId) where.marcaId = parseInt(marcaId);
 
     if (search) {
       const searchOR = [
@@ -244,14 +246,16 @@ const updateMaterial = async (req, res) => {
         descripcion:               body.descripcion,
         precio:                    body.precio ? parseFloat(body.precio) : null,
         tipoPrecio:                body.tipoPrecio,
+        orientacion:               body.orientacion || null,
+        altoMaxCm:                 body.altoMaxCm  ? parseInt(body.altoMaxCm)  : null,
+        anchoMaxCm:                body.anchoMaxCm ? parseInt(body.anchoMaxCm) : null,
         permiteAltoAncho:          body.permiteAltoAncho,
         permitePersonalizar:       body.permitePersonalizar,
         requiereNombreFarmacia:    body.requiereNombreFarmacia,
         permiteTalla:              body.permiteTalla,
         permitePersonalizacionBata: body.permitePersonalizacionBata,
         visibleParaDelegado:       body.visibleParaDelegado !== undefined ? body.visibleParaDelegado : true,
-        tipoEstablecimiento:       body.tipoEstablecimiento || null,
-        permiteEvento:             body.permiteEvento !== undefined ? body.permiteEvento : false,
+        tipoEstablecimiento:       body.tipoEstablecimiento,
         permiteMarca:              body.permiteMarca !== undefined ? body.permiteMarca : false,
         precioPublico:             body.precioPublico !== undefined ? parseFloat(body.precioPublico) || null : undefined,
         activo:                    body.activo,
@@ -265,6 +269,46 @@ const updateMaterial = async (req, res) => {
   } catch (error) {
     console.error('Error al actualizar material:', error);
     res.status(500).json({ success: false, message: 'Error al actualizar material', error: error.message });
+  }
+};
+
+/**
+ * Duplicar material
+ */
+const duplicateMaterial = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const original = await prisma.material.findUnique({ where: { id: parseInt(id) } });
+    if (!original) {
+      return res.status(404).json({ success: false, message: 'Material no encontrado' });
+    }
+
+    const { id: _id, codigo: _codigo, createdAt: _c, updatedAt: _u, ...fields } = original;
+
+    const copia = await prisma.material.create({
+      data: {
+        ...fields,
+        nombre: `(Copia) ${original.nombre}`,
+        activo: false,
+      },
+      include: materialInclude,
+    });
+
+    const copiaConCodigo = await prisma.material.update({
+      where:   { id: copia.id },
+      data:    { codigo: `MAT-${copia.id}` },
+      include: materialInclude,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Material duplicado exitosamente',
+      data:    copiaConCodigo,
+    });
+  } catch (error) {
+    console.error('Error al duplicar material:', error);
+    res.status(500).json({ success: false, message: 'Error al duplicar material', error: error.message });
   }
 };
 
@@ -307,4 +351,5 @@ module.exports = {
   getMaterialById,
   updateMaterial,
   deleteMaterial,
+  duplicateMaterial,
 };

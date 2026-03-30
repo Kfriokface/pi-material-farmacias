@@ -1,6 +1,9 @@
 const { body, query } = require('express-validator');
 
 const TIPOS_EMAIL_VALIDOS = ['DEFAULT', 'PRESUPUESTOS', 'PRODUCCION', 'FACTURACION'];
+const PHONE_REGEX = /^[+]?[0-9\s\-().]{7,20}$/;
+// CIF: letra + 7 dígitos + dígito/letra | NIF: 8 dígitos + letra | NIE: X/Y/Z + 7 dígitos + letra
+const NIF_REGEX = /^([A-Z]\d{7}[A-Z0-9]|\d{8}[A-Z]|[XYZ]\d{7}[A-Z])$/i;
 
 const emailsValidation = (required = false) => {
   const rules = [
@@ -32,35 +35,39 @@ const emailsValidation = (required = false) => {
 const createProveedorValidation = [
   body('nombre')
     .notEmpty().withMessage('El nombre es obligatorio').bail()
-    .trim()
+    .trim().escape()
     .isLength({ max: 150 }).withMessage('El nombre no puede exceder 150 caracteres'),
   body('nif')
     .notEmpty().withMessage('El NIF es obligatorio').bail()
-    .trim()
-    .isLength({ max: 20 }).withMessage('El NIF no puede exceder 20 caracteres'),
+    .trim().escape()
+    .matches(NIF_REGEX).withMessage('El NIF/CIF no tiene un formato válido'),
   body('direccion')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 255 }).withMessage('La dirección no puede exceder 255 caracteres'),
   body('codigoPostal')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isPostalCode('ES').withMessage('El código postal no es válido'),
   body('localidad')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 100 }).withMessage('La localidad no puede exceder 100 caracteres'),
+  body('provincia')
+    .optional({ nullable: true, checkFalsy: true })
+    .trim().escape()
+    .isLength({ max: 100 }).withMessage('La provincia no puede exceder 100 caracteres'),
   body('telefono')
     .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isLength({ max: 20 }).withMessage('El teléfono no puede exceder 20 caracteres'),
+    .matches(PHONE_REGEX).withMessage('El teléfono no es válido'),
   body('contacto')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 150 }).withMessage('El nombre de contacto no puede exceder 150 caracteres'),
   body('observaciones')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 1000 }).withMessage('Las observaciones no pueden exceder 1000 caracteres'),
   ...emailsValidation(true),
 ];
@@ -68,36 +75,40 @@ const createProveedorValidation = [
 const updateProveedorValidation = [
   body('nombre')
     .optional()
-    .trim()
+    .trim().escape()
     .notEmpty().withMessage('El nombre no puede estar vacío').bail()
     .isLength({ max: 150 }).withMessage('El nombre no puede exceder 150 caracteres'),
   body('nif')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
-    .isLength({ max: 20 }).withMessage('El NIF no puede exceder 20 caracteres'),
+    .trim().escape()
+    .matches(NIF_REGEX).withMessage('El NIF/CIF no tiene un formato válido'),
   body('direccion')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 255 }).withMessage('La dirección no puede exceder 255 caracteres'),
   body('codigoPostal')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isPostalCode('ES').withMessage('El código postal no es válido'),
   body('localidad')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 100 }).withMessage('La localidad no puede exceder 100 caracteres'),
+  body('provincia')
+    .optional({ nullable: true, checkFalsy: true })
+    .trim().escape()
+    .isLength({ max: 100 }).withMessage('La provincia no puede exceder 100 caracteres'),
   body('telefono')
     .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isLength({ max: 20 }).withMessage('El teléfono no puede exceder 20 caracteres'),
+    .matches(PHONE_REGEX).withMessage('El teléfono no es válido'),
   body('contacto')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 150 }).withMessage('El nombre de contacto no puede exceder 150 caracteres'),
   body('observaciones')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 1000 }).withMessage('Las observaciones no pueden exceder 1000 caracteres'),
   body('activo')
     .optional()
@@ -117,7 +128,7 @@ const listProveedorValidation = [
     .toInt(),
   query('search')
     .optional()
-    .trim()
+    .trim().escape()
     .isLength({ min: 1, max: 100 }).withMessage('search no puede exceder 100 caracteres'),
 ];
 

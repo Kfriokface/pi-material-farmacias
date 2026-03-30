@@ -1,6 +1,5 @@
 const express  = require('express');
 const router   = express.Router();
-const { body, param } = require('express-validator');
 
 const authenticate           = require('../middleware/authenticate');
 const authorize              = require('../middleware/authorize');
@@ -8,28 +7,22 @@ const filterActivo           = require('../middleware/filterActivo');
 const handleValidationErrors = require('../middleware/validation');
 
 const {
-  getAllGerencias,
-  getGerenciaById,
-  createGerencia,
-  updateGerencia,
-} = require('../controllers/gerenciaController');
+  createAreaValidation,
+  updateAreaValidation,
+  listAreaValidation,
+} = require('../validators/areaValidator');
 
-const createValidation = [
-  body('nombre').notEmpty().withMessage('El nombre es obligatorio').isLength({ max: 200 }),
-  body('areaIds').optional().isArray().withMessage('areaIds debe ser un array'),
-];
+const {
+  getAllAreas,
+  getAreaById,
+  createArea,
+  updateArea,
+} = require('../controllers/areaController');
 
-const updateValidation = [
-  param('id').isInt({ min: 1 }).toInt(),
-  body('nombre').optional().isLength({ max: 200 }),
-  body('activo').optional().isBoolean().toBoolean(),
-  body('areaIds').optional().isArray().withMessage('areaIds debe ser un array'),
-];
-
-router.get('/',    authenticate, filterActivo, getAllGerencias);
-router.get('/:id', authenticate, filterActivo, param('id').isInt({ min: 1 }).toInt(), handleValidationErrors, getGerenciaById);
-router.post('/',   authenticate, authorize('ADMIN'), createValidation, handleValidationErrors, createGerencia);
-router.put('/:id', authenticate, authorize('ADMIN'), updateValidation, handleValidationErrors, updateGerencia);
+router.get('/', authenticate, filterActivo, listAreaValidation, handleValidationErrors, getAllAreas);
+router.get('/:id', authenticate, filterActivo, getAreaById);
+router.post('/', authenticate, authorize('ADMIN'), createAreaValidation, handleValidationErrors, createArea);
+router.put('/:id', authenticate, authorize('ADMIN'), updateAreaValidation, handleValidationErrors, updateArea);
 
 module.exports = router;
 
@@ -40,53 +33,45 @@ module.exports = router;
 /**
  * @openapi
  * tags:
- *   name: Gerencias
- *   description: Gestión de gerencias (agrupan zonas)
+ *   name: Areas
+ *   description: Gestión de áreas geográficas
  *
  * components:
  *   schemas:
- *     Gerencia:
+ *     Area:
  *       type: object
  *       properties:
  *         id:           { type: integer, example: 1 }
- *         nombre:       { type: string, example: "Gerencia Centro" }
- *         descripcion:  { type: string }
+ *         nombre:       { type: string, example: "Madrid Centro" }
  *         direccion:    { type: string }
  *         codigoPostal: { type: string }
  *         localidad:    { type: string }
- *         provincia:    { type: string }
  *         activo:       { type: boolean, example: true }
- *         zonas:
- *           type: array
- *           items:
- *             type: object
- *             properties:
- *               zona:
- *                 type: object
- *                 properties:
- *                   id:     { type: integer }
- *                   nombre: { type: string }
  *         _count:
  *           type: object
  *           properties:
- *             zonas: { type: integer, example: 2 }
+ *             usuarios: { type: integer, example: 3 }
  */
 
 /**
  * @openapi
- * /api/gerencias:
+ * /api/areas:
  *   get:
- *     summary: Listar gerencias (incluye zonas)
- *     tags: [Gerencias]
+ *     summary: Listar áreas
+ *     tags: [Areas]
  *     security:
  *       - bearerAuth: []
  *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *         description: Filtrar por nombre, descripción o localidad
  *       - in: query
  *         name: activo
  *         schema: { type: boolean }
  *     responses:
  *       200:
- *         description: Lista de gerencias
+ *         description: Lista de áreas
  *         content:
  *           application/json:
  *             schema:
@@ -95,11 +80,11 @@ module.exports = router;
  *                 success: { type: boolean, example: true }
  *                 data:
  *                   type: array
- *                   items: { $ref: '#/components/schemas/Gerencia' }
+ *                   items: { $ref: '#/components/schemas/Area' }
  *
  *   post:
- *     summary: Crear gerencia (solo ADMIN)
- *     tags: [Gerencias]
+ *     summary: Crear área (solo ADMIN)
+ *     tags: [Areas]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -110,19 +95,13 @@ module.exports = router;
  *             type: object
  *             required: [nombre]
  *             properties:
- *               nombre:       { type: string, example: "Gerencia Sur" }
- *               descripcion:  { type: string }
+ *               nombre:       { type: string, example: "Madrid Centro" }
  *               direccion:    { type: string }
  *               codigoPostal: { type: string }
  *               localidad:    { type: string }
- *               provincia:    { type: string }
- *               zonaIds:
- *                 type: array
- *                 items: { type: integer }
- *                 example: [1, 2]
  *     responses:
  *       201:
- *         description: Gerencia creada
+ *         description: Área creada
  *         content:
  *           application/json:
  *             schema:
@@ -130,7 +109,7 @@ module.exports = router;
  *               properties:
  *                 success: { type: boolean, example: true }
  *                 message: { type: string }
- *                 data: { $ref: '#/components/schemas/Gerencia' }
+ *                 data: { $ref: '#/components/schemas/Area' }
  *       400:
  *         description: Nombre duplicado o datos inválidos
  *         content:
@@ -140,10 +119,10 @@ module.exports = router;
 
 /**
  * @openapi
- * /api/gerencias/{id}:
+ * /api/areas/{id}:
  *   get:
- *     summary: Obtener gerencia por ID
- *     tags: [Gerencias]
+ *     summary: Obtener área por ID (incluye usuarios)
+ *     tags: [Areas]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -153,23 +132,23 @@ module.exports = router;
  *         schema: { type: integer }
  *     responses:
  *       200:
- *         description: Gerencia encontrada
+ *         description: Área encontrada
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
  *                 success: { type: boolean, example: true }
- *                 data: { $ref: '#/components/schemas/Gerencia' }
+ *                 data: { $ref: '#/components/schemas/Area' }
  *       404:
- *         description: Gerencia no encontrada
+ *         description: Área no encontrada
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
  *
  *   put:
- *     summary: Actualizar gerencia (solo ADMIN)
- *     tags: [Gerencias]
+ *     summary: Actualizar área (solo ADMIN)
+ *     tags: [Areas]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -185,20 +164,13 @@ module.exports = router;
  *             type: object
  *             properties:
  *               nombre:       { type: string }
- *               descripcion:  { type: string }
  *               direccion:    { type: string }
  *               codigoPostal: { type: string }
  *               localidad:    { type: string }
- *               provincia:    { type: string }
  *               activo:       { type: boolean }
- *               zonaIds:
- *                 type: array
- *                 description: Reemplaza todas las zonas asociadas
- *                 items: { type: integer }
- *                 example: [1, 3]
  *     responses:
  *       200:
- *         description: Gerencia actualizada
+ *         description: Área actualizada
  *         content:
  *           application/json:
  *             schema:
@@ -206,9 +178,9 @@ module.exports = router;
  *               properties:
  *                 success: { type: boolean, example: true }
  *                 message: { type: string }
- *                 data: { $ref: '#/components/schemas/Gerencia' }
+ *                 data: { $ref: '#/components/schemas/Area' }
  *       404:
- *         description: Gerencia no encontrada
+ *         description: Área no encontrada
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }

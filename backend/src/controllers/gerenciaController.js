@@ -1,11 +1,11 @@
 const prisma = require('../lib/prisma');
 
 const gerenciaInclude = {
-  zonas: {
+  areas: {
     include: {
-      zona: { select: { id: true, nombre: true } },
+      area: { select: { id: true, nombre: true } },
     },
-    orderBy: { zona: { nombre: 'asc' } },
+    orderBy: { area: { nombre: 'asc' } },
   },
 };
 
@@ -19,10 +19,10 @@ const getAllGerencias = async (req, res) => {
     const gerencias = await prisma.gerencia.findMany({
       where,
       include: {
-        _count: { select: { zonas: true } },
-        zonas: {
-          include: { zona: { select: { id: true, nombre: true } } },
-          orderBy: { zona: { nombre: 'asc' } },
+        _count: { select: { areas: true } },
+        areas: {
+          include: { area: { select: { id: true, nombre: true } } },
+          orderBy: { area: { nombre: 'asc' } },
         },
       },
       orderBy: { nombre: 'asc' },
@@ -63,7 +63,7 @@ const getGerenciaById = async (req, res) => {
  */
 const createGerencia = async (req, res) => {
   try {
-    const { nombre, descripcion, direccion, codigoPostal, localidad, provincia, zonaIds = [] } = req.body;
+    const { nombre, descripcion, direccion, codigoPostal, localidad, provincia, areaIds = [] } = req.body;
 
     const existing = await prisma.gerencia.findUnique({ where: { nombre } });
     if (existing) {
@@ -78,8 +78,8 @@ const createGerencia = async (req, res) => {
         codigoPostal: codigoPostal || null,
         localidad:    localidad    || null,
         provincia:    provincia    || null,
-        zonas: {
-          create: zonaIds.map((zonaId) => ({ zonaId: parseInt(zonaId) })),
+        areas: {
+          create: areaIds.map((areaId) => ({ areaId: parseInt(areaId) })),
         },
       },
       include: gerenciaInclude,
@@ -93,12 +93,12 @@ const createGerencia = async (req, res) => {
 };
 
 /**
- * Actualizar gerencia (nombre, activo y reemplazo de zonas)
+ * Actualizar gerencia (nombre, activo y reemplazo de áreas)
  */
 const updateGerencia = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, descripcion, direccion, codigoPostal, localidad, provincia, activo, zonaIds } = req.body;
+    const { nombre, descripcion, direccion, codigoPostal, localidad, provincia, activo, areaIds } = req.body;
 
     const existing = await prisma.gerencia.findUnique({ where: { id: parseInt(id) } });
     if (!existing) {
@@ -121,12 +121,12 @@ const updateGerencia = async (req, res) => {
     if (provincia   !== undefined) updateData.provincia   = provincia   || null;
     if (activo      !== undefined) updateData.activo      = activo;
 
-    // Si se envía zonaIds, reemplazar todas las zonas
-    if (zonaIds !== undefined) {
+    // Si se envía areaIds, reemplazar todas las áreas
+    if (areaIds !== undefined) {
       await prisma.$transaction([
-        prisma.gerenciaZona.deleteMany({ where: { gerenciaId: parseInt(id) } }),
-        prisma.gerenciaZona.createMany({
-          data: zonaIds.map((zonaId) => ({ gerenciaId: parseInt(id), zonaId: parseInt(zonaId) })),
+        prisma.gerenciaArea.deleteMany({ where: { gerenciaId: parseInt(id) } }),
+        prisma.gerenciaArea.createMany({
+          data: areaIds.map((areaId) => ({ gerenciaId: parseInt(id), areaId: parseInt(areaId) })),
         }),
       ]);
     }

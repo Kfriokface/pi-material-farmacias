@@ -11,7 +11,7 @@ datasource db {
 // MODELOS
 // ============================================
 
-model Zona {
+model Area {
   id           Int       @id @default(autoincrement())
   nombre       String    @unique
   direccion    String?
@@ -23,9 +23,10 @@ model Zona {
 
   usuarios         Usuario[]
   establecimientos Establecimiento[]
-  gerencias        GerenciaZona[]
+  gerencias        GerenciaArea[]
 
   @@index([activo])
+  @@map("Zona")
 }
 
 model Usuario {
@@ -40,7 +41,7 @@ model Usuario {
   numeroSAP     String?              // Identificador SAP para futura integración EntraID
   nombreCompleto String?             // nombre tal cual viene de SAP/EntraID
   rol           Rol       @default(DELEGADO)
-  zonaId        Int?
+  areaId        Int?      @map("zonaId")
   direccion     String?
   codigoPostal  String?
   localidad     String?
@@ -52,14 +53,16 @@ model Usuario {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  zona               Zona?            @relation(fields: [zonaId], references: [id])
+  area               Area?            @relation(fields: [areaId], references: [id])
   establecimientos   Establecimiento[]
   solicitudes        Solicitud[]
+  direccionesAgenda  DireccionAgenda[]
 
   @@index([email])
   @@index([rol])
   @@index([activo])
-  @@index([zonaId])
+  @@index([areaId])
+
 }
 
 model Establecimiento {
@@ -81,8 +84,8 @@ model Establecimiento {
   ubicacion     String?
   activo        Boolean              @default(true)
 
-  zonaId        Int?                 // Zona directa del establecimiento (de DMDescr en importación)
-  zona          Zona?                @relation(fields: [zonaId], references: [id])
+  areaId        Int?                 @map("zonaId") // Área directa del establecimiento (de DMDescr en importación)
+  area          Area?                @relation(fields: [areaId], references: [id])
 
   delegadoId    Int?                 // Opcional: puede importarse sin delegado asignado
   delegado      Usuario?             @relation(fields: [delegadoId], references: [id])
@@ -91,7 +94,7 @@ model Establecimiento {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
-  @@index([zonaId])
+  @@index([areaId])
   @@index([delegadoId])
   @@index([nif])
   @@index([activo])
@@ -107,6 +110,7 @@ model Proveedor {
   direccion     String?
   codigoPostal  String?
   localidad     String?
+  provincia     String?
   telefono      String?
   contacto      String?
   observaciones String?    @db.Text
@@ -162,6 +166,7 @@ model Material {
 
   descripcion                String?              @db.Text
   imagen                     String?
+  imagenZoom                 String?
   thumbnail                  String?
   imagenes                   String?              @db.Text
 
@@ -170,16 +175,18 @@ model Material {
   tipoPrecio                 TipoPrecio           @default(UNIDAD)
 
   orientacion                OrientacionMaterial?
+  altoMaxCm                  Int?                 // Máximo permitido en solicitudes (solo si permiteAltoAncho)
+  anchoMaxCm                 Int?                 // Máximo permitido en solicitudes (solo si permiteAltoAncho)
   permiteAltoAncho           Boolean              @default(false)
   permitePersonalizar        Boolean              @default(false)
+  lenguas                    String?              // CSV de idiomas disponibles para personalización (ej: "ES,CA,EU")
   requiereNombreFarmacia     Boolean              @default(false)
   permiteTalla               Boolean              @default(false)
   permitePersonalizacionBata Boolean              @default(false)
   permiteMarca               Boolean              @default(false)
 
   visibleParaDelegado        Boolean              @default(true)
-  tipoEstablecimiento        TipoEstablecimiento?
-  permiteEvento              Boolean              @default(false)
+  tipoEstablecimiento        TipoEstablecimiento
 
   activo                     Boolean              @default(true)
   createdAt                  DateTime             @default(now())
@@ -197,7 +204,7 @@ model Configuracion {
   id                    Int      @id @default(1)
 
   // Límites de gasto
-  limiteUsuarioAnual    Float?
+  limiteAnualPorFarmacia Float?
 
   // Soporte
   soporteNombre         String?
@@ -210,6 +217,12 @@ model Configuracion {
   // Aviso global (banner en la app)
   avisoActivo           Boolean  @default(false)
   avisoTexto            String?  @db.Text
+
+  // Dirección de entrega por defecto (para solicitudes de admin)
+  entregaDefaultDireccion     String?
+  entregaDefaultCodigoPostal  String?
+  entregaDefaultLocalidad     String?
+  entregaDefaultProvincia     String?
 
   // Notificaciones de solicitudes completadas
   emailAdmin                  String?
@@ -242,8 +255,10 @@ model Solicitud {
   marcaId                  Int?
   marca                    Marca?               @relation(fields: [marcaId], references: [id])
 
-  // Dirección de entrega indicada por el solicitante (opcional)
-  // Prioridad en EN_FABRICACION: esta dirección → usuario → zona
+  // Dirección de entrega
+  origenDireccion          OrigenDireccion?
+  agendaDireccionId        Int?
+  agendaDireccion          DireccionAgenda? @relation(fields: [agendaDireccionId], references: [id])
   direccionEntrega         String?
   codigoPostalEntrega      String?
   localidadEntrega         String?
@@ -261,14 +276,19 @@ model Solicitud {
   provinciaEntregaFinal    String?
   telefonoEntregaFinal     String?
 
-  // Token único para que el fabricante confirme el envío sin autenticación
-  tokenFabricante          String?              @unique
-
   // Archivos adjuntos de personalización (JSON: array de rutas relativas)
   archivosPersonalizacion  String?              @db.Text
 
-  // Avisos de presupuesto (límites blandos)
-  avisoLimiteUsuario       Boolean              @default(false)
+  // Personalización de idioma
+  lenguaPersonalizacion    String?              // Lengua seleccionada para personalización del material
+
+  // Imputación de gasto
+  areaId                   Int?                 // Área a la que se descuenta el gasto (desnormalizado)
+  imputadoId               Int?                 // Delegado o gerente al que se atribuye el gasto
+  anio                     Int                  @default(0) // Año fiscal (año natural de creación)
+
+  // Avisos de presupuesto (límite blando)
+  avisoLimiteArea          Boolean              @default(false)
 
   observaciones            String?   @db.Text
 
@@ -291,6 +311,27 @@ model Solicitud {
   @@index([proveedorEnviadoId])
   @@index([estado])
   @@index([createdAt])
+  @@index([areaId])
+  @@index([imputadoId])
+  @@index([anio])
+}
+
+model DireccionAgenda {
+  id           Int       @id @default(autoincrement())
+  usuarioId    Int
+  nombre       String
+  direccion    String
+  codigoPostal String
+  localidad    String
+  provincia    String
+  activo       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  usuario      Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  solicitudes  Solicitud[]
+
+  @@index([usuarioId])
 }
 
 model FotoInstalacion {
@@ -316,19 +357,20 @@ model Gerencia {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
-  zonas        GerenciaZona[]
+  areas        GerenciaArea[]
 
   @@index([activo])
 }
 
-model GerenciaZona {
+model GerenciaArea {
   gerenciaId Int
-  zonaId     Int
+  areaId     Int  @map("zonaId")
 
   gerencia   Gerencia @relation(fields: [gerenciaId], references: [id], onDelete: Cascade)
-  zona       Zona     @relation(fields: [zonaId], references: [id], onDelete: Cascade)
+  area       Area     @relation(fields: [areaId], references: [id], onDelete: Cascade)
 
-  @@id([gerenciaId, zonaId])
+  @@id([gerenciaId, areaId])
+  @@map("GerenciaZona")
 }
 
 // ============================================
@@ -344,6 +386,7 @@ enum Rol {
 enum TipoEstablecimiento {
   FARMACIA
   CLINICA
+  EVENTO
 }
 
 enum Lengua {
@@ -351,6 +394,7 @@ enum Lengua {
   CA
   EU
   GL
+  VA
 }
 
 enum TipoPrecio {
@@ -378,7 +422,6 @@ enum EstadoSolicitud {
   PENDIENTE
   RECHAZADA
   EN_FABRICACION
-  ENVIADA
   COMPLETADA
 }
 
@@ -387,4 +430,13 @@ enum TipoEmailProveedor {
   PRESUPUESTOS
   PRODUCCION
   FACTURACION
+}
+
+enum OrigenDireccion {
+  PERFIL
+  GERENCIA
+  AGENDA
+  NUEVA
+  DEFAULT
+  USUARIO
 }

@@ -12,6 +12,7 @@ const Rol = {
 const TipoEstablecimiento = {
   FARMACIA: 'FARMACIA',
   CLINICA:  'CLINICA',
+  EVENTO:   'EVENTO',
 };
 
 const TipoPrecio = {
@@ -40,13 +41,13 @@ const Lengua = {
   CA: 'CA',
   EU: 'EU',
   GL: 'GL',
+  VA: 'VA',
 };
 
 const EstadoSolicitud = {
   PENDIENTE:      'PENDIENTE',
   RECHAZADA:      'RECHAZADA',
   EN_FABRICACION: 'EN_FABRICACION',
-  ENVIADA:        'ENVIADA',
   COMPLETADA:     'COMPLETADA',
 };
 

@@ -11,7 +11,7 @@ const MAX_FOTOS = 10;
 
 /**
  * Subir foto de instalación a una solicitud
- * La solicitud debe estar en estado ENVIADA o COMPLETADA
+ * La solicitud debe estar en estado EN_FABRICACION o COMPLETADA
  */
 const uploadFotoInstalacion = async (req, res) => {
   try {
@@ -33,10 +33,10 @@ const uploadFotoInstalacion = async (req, res) => {
       });
     }
 
-    if (!['EN_FABRICACION', 'ENVIADA', 'COMPLETADA'].includes(solicitud.estado)) {
+    if (!['EN_FABRICACION', 'COMPLETADA'].includes(solicitud.estado)) {
       return res.status(400).json({
         success: false,
-        message: 'Solo se pueden subir fotos a solicitudes en estado EN_FABRICACION, ENVIADA o COMPLETADA',
+        message: 'Solo se pueden subir fotos a solicitudes en estado EN_FABRICACION o COMPLETADA',
       });
     }
 
@@ -76,8 +76,8 @@ const uploadFotoInstalacion = async (req, res) => {
       },
     });
 
-    // Al subir foto desde EN_FABRICACION o ENVIADA, marcar como COMPLETADA automáticamente
-    if (['EN_FABRICACION', 'ENVIADA'].includes(solicitud.estado)) {
+    // Al subir foto desde EN_FABRICACION, marcar como COMPLETADA automáticamente
+    if (solicitud.estado === 'EN_FABRICACION') {
       await prisma.solicitud.update({
         where: { id: parseInt(id) },
         data: {

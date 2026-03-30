@@ -7,10 +7,14 @@ const delegadoSelect = {
   apellido1: true,
   apellido2: true,
   email: true,
-  zona: { select: { id: true, nombre: true } },
+  direccion: true,
+  codigoPostal: true,
+  localidad: true,
+  provincia: true,
+  area: { select: { id: true, nombre: true } },
 };
 
-const zonaSelect = { id: true, nombre: true };
+const areaSelect = { id: true, nombre: true };
 
 /**
  * Crear establecimiento
@@ -33,7 +37,7 @@ const createEstablecimiento = async (req, res) => {
       territoryDescr,
       panel,
       ubicacion,
-      zonaId,
+      areaId,
       delegadoId,
     } = req.body;
 
@@ -87,11 +91,11 @@ const createEstablecimiento = async (req, res) => {
         territoryDescr,
         panel,
         ubicacion,
-        zonaId:     zonaId ? parseInt(zonaId) : null,
+        areaId:     areaId ? parseInt(areaId) : null,
         delegadoId: delegadoId ? parseInt(delegadoId) : null,
       },
       include: {
-        zona:     { select: zonaSelect },
+        area:     { select: areaSelect },
         delegado: { select: delegadoSelect },
       },
     });
@@ -116,7 +120,7 @@ const createEstablecimiento = async (req, res) => {
  */
 const getAllEstablecimientos = async (req, res) => {
   try {
-    const { page = 1, limit = 20, tipo, search } = req.query;
+    const { page = 1, limit = 20, tipo, search, areaId } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
@@ -129,12 +133,12 @@ const getAllEstablecimientos = async (req, res) => {
       where.tipo = 'FARMACIA';
     }
 
-    // GERENTE ve farmacias de su zona + sus clínicas
+    // GERENTE ve farmacias de su área + sus clínicas
     if (req.user.rol === 'GERENTE') {
       where.AND = [
         {
           OR: [
-            { tipo: 'FARMACIA', zonaId: req.user.zonaId },
+            { tipo: 'FARMACIA', areaId: req.user.areaId },
             { tipo: 'CLINICA',  delegadoId: req.user.id },
           ],
         },
@@ -148,6 +152,11 @@ const getAllEstablecimientos = async (req, res) => {
       } else if (req.user.rol === 'GERENTE') {
         where.AND.push({ tipo });
       }
+    }
+
+    // Filtro por área (solo ADMIN)
+    if (areaId && req.user.rol === 'ADMIN') {
+      where.areaId = parseInt(areaId);
     }
 
     if (search) {
@@ -174,7 +183,7 @@ const getAllEstablecimientos = async (req, res) => {
         skip,
         take,
         include: {
-          zona:     { select: zonaSelect },
+          area:     { select: areaSelect },
           delegado: { select: delegadoSelect },
         },
         orderBy: { nombre: 'asc' },
@@ -223,7 +232,7 @@ const getEstablecimientoById = async (req, res) => {
     const establecimiento = await prisma.establecimiento.findFirst({
       where,
       include: {
-        zona:     { select: zonaSelect },
+        area:     { select: areaSelect },
         delegado: { select: delegadoSelect },
       },
     });
@@ -281,9 +290,9 @@ const updateEstablecimiento = async (req, res) => {
       }
     }
 
-    // Parsear zonaId si viene en el body
-    if (updateData.zonaId !== undefined) {
-      updateData.zonaId = updateData.zonaId ? parseInt(updateData.zonaId) : null;
+    // Parsear areaId si viene en el body
+    if (updateData.areaId !== undefined) {
+      updateData.areaId = updateData.areaId ? parseInt(updateData.areaId) : null;
     }
 
     // Verificar delegado si cambia
@@ -311,7 +320,7 @@ const updateEstablecimiento = async (req, res) => {
       where: { id: parseInt(id) },
       data: updateData,
       include: {
-        zona:     { select: zonaSelect },
+        area:     { select: areaSelect },
         delegado: { select: delegadoSelect },
       },
     });

@@ -31,7 +31,7 @@ async function authMiddleware(req, res, next) {
         avatar: true,
         avatarEntraId: true,
         numeroSAP: true,
-        zonaId: true,
+        areaId: true,
         activo: true,
       },
     });

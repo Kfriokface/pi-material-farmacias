@@ -195,11 +195,10 @@ async function emailSolicitudEnFabricacion({ solicitud, destinatario }) {
 }
 
 /**
- * Email al proveedor/fabricante con enlace para confirmar envío
+ * Email al proveedor/fabricante con datos del nuevo pedido (sin enlace de confirmación)
  */
-async function emailFabricanteConfirmacion({ solicitud, emailProveedor, nombreProveedor }) {
-  const appUrl = process.env.APP_URL || 'http://localhost:3000';
-  const linkConfirmar = `${appUrl}/api/fabricante/confirmar/${solicitud.tokenFabricante}`;
+async function emailFabricanteNuevoPedido({ solicitud, emailProveedor, nombreProveedor }) {
+  const appUrl = process.env.APP_URL || 'https://dev.far.webconsultas.net';
 
   const entrega = [
     solicitud.direccionEntregaFinal,
@@ -211,8 +210,7 @@ async function emailFabricanteConfirmacion({ solicitud, emailProveedor, nombrePr
   const contenido = `
     <p style="color:#374151;font-size:15px;margin:0 0 16px;">Estimado/a ${nombreProveedor || 'proveedor'},</p>
     <p style="color:#374151;font-size:15px;margin:0 0 24px;">
-      Les comunicamos que han recibido un nuevo pedido. Cuando el material esté enviado,
-      por favor confirmen el envío haciendo clic en el botón de abajo.
+      Les comunicamos que han recibido un nuevo pedido.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-bottom:8px;">
       <tr style="background:#f9fafb;">
@@ -250,11 +248,6 @@ async function emailFabricanteConfirmacion({ solicitud, emailProveedor, nombrePr
         </td></tr>`;
       })()}
     </table>
-    ${boton('Confirmar envío del pedido', linkConfirmar)}
-    <p style="color:#9ca3af;font-size:12px;text-align:center;">
-      O copie este enlace en su navegador:<br>
-      <a href="${linkConfirmar}" style="color:#0e8d39;word-break:break-all;">${linkConfirmar}</a>
-    </p>
   `;
   await sendEmail({
     to:      emailProveedor,
@@ -264,47 +257,10 @@ async function emailFabricanteConfirmacion({ solicitud, emailProveedor, nombrePr
 }
 
 /**
- * Email al solicitante/gerente cuando el fabricante confirma el envío (ENVIADA)
- */
-async function emailSolicitudEnviada({ solicitud, destinatario }) {
-  const nombre = nombreUsuario(destinatario);
-  const contenido = `
-    <p style="color:#374151;font-size:15px;margin:0 0 16px;">Hola ${nombre},</p>
-    <p style="color:#374151;font-size:15px;margin:0 0 24px;">
-      El proveedor ha confirmado el envío de la solicitud <strong>#${solicitud.id}</strong>.
-      El material está en camino — cuando lo recibas, márcalo como recibido en la aplicación.
-    </p>
-    <table cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-bottom:24px;">
-      <tr style="background:#f9fafb;">
-        <td colspan="2" style="padding:10px 16px;font-size:13px;font-weight:bold;color:#374151;border-bottom:1px solid #e5e7eb;">
-          Detalle de la solicitud
-        </td>
-      </tr>
-      <tr><td colspan="2" style="padding:12px 16px;">
-        <table width="100%" cellpadding="0" cellspacing="0">
-          ${infoRow('Material', solicitud.material?.nombre)}
-          ${infoRow('Establecimiento', solicitud.establecimiento?.nombre || solicitud.eventoNombre || '-')}
-          ${infoRow('Dirección de entrega', [
-            solicitud.direccionEntregaFinal,
-            solicitud.codigoPostalEntregaFinal,
-            solicitud.localidadEntregaFinal,
-          ].filter(Boolean).join(', '))}
-        </table>
-      </td></tr>
-    </table>
-  `;
-  await sendEmail({
-    to:      destinatario.email,
-    subject: `Solicitud #${solicitud.id} enviada — Material Farmacias`,
-    html:    layout('Tu pedido está en camino', contenido),
-  });
-}
-
-/**
  * Email al email de sistema cuando se crea una nueva solicitud
  */
 async function emailSolicitudCreada({ solicitud, emailSistema }) {
-  const appUrl = process.env.APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.APP_URL || 'https://dev.far.webconsultas.net';
   const linkSolicitud = `${appUrl}/admin/solicitudes/${solicitud.id}`;
 
   const contenido = `
@@ -339,7 +295,7 @@ async function emailSolicitudCreada({ solicitud, emailSistema }) {
  * Email al email de sistema cuando una solicitud se completa
  */
 async function emailSolicitudCompletada({ solicitud, emailSistema }) {
-  const appUrl = process.env.APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.APP_URL || 'https://dev.far.webconsultas.net';
   const linkSolicitud = `${appUrl}/admin/solicitudes/${solicitud.id}`;
 
   const contenido = `
@@ -375,8 +331,7 @@ async function emailSolicitudCompletada({ solicitud, emailSistema }) {
 module.exports = {
   emailSolicitudRechazada,
   emailSolicitudEnFabricacion,
-  emailFabricanteConfirmacion,
-  emailSolicitudEnviada,
+  emailFabricanteNuevoPedido,
   emailSolicitudCreada,
   emailSolicitudCompletada,
 };

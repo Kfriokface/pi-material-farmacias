@@ -14,11 +14,12 @@ const ALLOWED_MIMETYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 // Configuración Sharp por tipo
 const SHARP_CONFIG = {
-  principal:   { width: 800,  height: 600 },
-  thumbnail:   { width: 400,  height: 300 },
-  galeria:     { width: 800,  height: 600 },
-  avatar:      { width: 400,  height: 400 },
-  instalacion: { width: 1200, height: 900 },
+  principal:   { width: 800,  height: 600,  fit: 'cover',  withoutEnlargement: true },
+  thumbnail:   { width: 400,  height: 300,  fit: 'cover',  withoutEnlargement: true },
+  galeria:     { width: 800,  height: 600,  fit: 'cover',  withoutEnlargement: true },
+  zoom:        { width: 800,  height: null, fit: 'inside', withoutEnlargement: true },
+  avatar:      { width: 400,  height: 400,  fit: 'cover',  withoutEnlargement: true },
+  instalacion: { width: 1200, height: 900,  fit: 'cover',  withoutEnlargement: true },
 };
 // Rutas de directorios
 const PATHS = {
@@ -118,9 +119,9 @@ async function processImage(inputPath, outputDir, tipo = 'principal', deleteTemp
 
   await sharp(inputPath)
     .resize(config.width, config.height, {
-      fit: 'cover',
+      fit: config.fit,
       position: 'centre',
-      withoutEnlargement: true,
+      withoutEnlargement: config.withoutEnlargement,
     })
     .webp({ quality: 80 })
     .toFile(outputPath);

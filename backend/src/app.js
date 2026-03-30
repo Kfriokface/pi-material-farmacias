@@ -11,6 +11,8 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:3000',
+    'https://dev.far.webconsultas.net',
+    'https://pre.far.webconsultas.net',
   ],
   credentials: true,
 }));
@@ -32,9 +34,10 @@ app.get('/', (req, res) => {
 // ============================================
 app.use('/api/auth',            require('./routes/authRoutes'));
 
-// Usuarios, zonas y gerencias
+// Usuarios, áreas y gerencias
 app.use('/api/usuarios',        require('./routes/usuarioRoutes'));
-app.use('/api/zonas',           require('./routes/zonaRoutes'));
+app.use('/api/agenda',          require('./routes/agendaRoutes'));
+app.use('/api/areas',           require('./routes/areaRoutes'));
 app.use('/api/gerencias',       require('./routes/gerenciaRoutes'));
 
 // Catálogo
@@ -52,9 +55,6 @@ app.use('/api/solicitudes',     require('./routes/solicitudRoutes'));
 // Configuración
 app.use('/api/configuracion',     require('./routes/configuracionRoutes'));
 
-// Fabricante (público — sin autenticación)
-app.use('/api/fabricante',        require('./routes/fabricanteRoutes'));
-
 // ============================================
 // SWAGGER UI (solo dev y staging)
 // ============================================
@@ -62,7 +62,6 @@ if (process.env.NODE_ENV !== 'production') {
   const swaggerUi   = require('swagger-ui-express');
   const swaggerSpec = require('./swagger');
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
-  app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
   console.log('Swagger UI disponible en /api-docs');
 }
 

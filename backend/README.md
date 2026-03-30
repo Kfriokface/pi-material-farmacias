@@ -8,7 +8,7 @@ API REST para la gestión de material promocional y corporativo para farmacias.
 
 Este proyecto es el **Trabajo de Fin de Ciclo (Proyecto Intermodular)** del Grado Superior de Desarrollo de Aplicaciones Web.
 
-Parte de la base de un proyecto real en producción que gestiona material promocional para una red de farmacias. Para el PI, todos los datos (usuarios, establecimientos, zonas, etc.) son **ficticios**. El proyecto real opera con datos reales de la empresa, pero esta entrega académica utiliza una copia anonimizada con datos de prueba generados específicamente para este fin.
+Parte de la base de un proyecto real en producción que gestiona material promocional para una red de farmacias. Para el PI, todos los datos (usuarios, establecimientos, áreas, etc.) son **ficticios**. El proyecto real opera con datos reales de la empresa, pero esta entrega académica utiliza una copia anonimizada con datos de prueba generados específicamente para este fin.
 
 El PI se entrega en dos fases:
 - **Fase 1 (actual):** Backend — API REST completa con autenticación, gestión de roles, catálogo de materiales y flujo de solicitudes.
@@ -24,20 +24,19 @@ La aplicación permite a una red de comerciales (gerentes y delegados) solicitar
 
 | Rol | Descripción |
 |---|---|
-| **ADMIN** | Acceso total. Gestiona usuarios, zonas, materiales, proveedores y establecimientos. Aprueba o rechaza solicitudes y las mueve por el flujo de estados. |
-| **GERENTE** | Ve las farmacias y solicitudes de su zona. Puede crear solicitudes para los establecimientos (farmacias y clínicas) de su zona y para eventos y marcarlas como completadas una vez recibido el material. |
+| **ADMIN** | Acceso total. Gestiona usuarios, áreas, materiales, proveedores y establecimientos. Aprueba o rechaza solicitudes y las mueve por el flujo de estados. |
+| **GERENTE** | Ve las farmacias y solicitudes de su área. Puede crear solicitudes para los establecimientos (farmacias y clínicas) de su área y para eventos, y marcarlas como completadas una vez recibido el material. |
 | **DELEGADO** | Ve únicamente sus farmacias asignadas y sus propias solicitudes. Puede crear solicitudes y marcarlas como completadas una vez recibido el material. |
 
 ### Flujo de una solicitud
 
 ```
-PENDIENTE → EN_FABRICACION → ENVIADA → COMPLETADA
+PENDIENTE → EN_FABRICACION → COMPLETADA
               └→ RECHAZADA
 ```
 
 - El **DELEGADO** o **GERENTE** crea la solicitud (`PENDIENTE`).
-- El **ADMIN** la aprueba (`EN_FABRICACION`) o rechaza. Al aprobar, se fija la dirección de entrega y se envía un email al fabricante/proveedor con un enlace de confirmación.
-- El **fabricante** confirma el envío accediendo al enlace enviado por correo (`ENVIADA`).
+- El **ADMIN** la aprueba (`EN_FABRICACION`) o rechaza. Al aprobar, se fija la dirección de entrega y se notifica al proveedor por email.
 - El **DELEGADO** o **GERENTE** marca su propia solicitud como completada cuando recibe el material (`COMPLETADA`).
 
 ---
@@ -119,7 +118,7 @@ npx prisma db seed
 ```
 
 El seed carga datos ficticios:
-- 2 gerencias (Centro y Sur), 4 zonas (Madrid Centro, Madrid Periferia, Sevilla, Córdoba)
+- 2 gerencias (Centro y Sur), 4 áreas (Madrid Centro, Madrid Periferia, Sevilla, Córdoba)
 - 13 usuarios (1 admin, 4 gerentes, 8 delegados)
 - 22 establecimientos (16 farmacias, 6 clínicas)
 - Materiales y proveedores de ejemplo
@@ -198,13 +197,13 @@ Desde ahí puedes autenticarte con el botón **Authorize** (usar el token obteni
 | PUT | `/api/usuarios/:id` | Actualizar usuario | ADMIN |
 | DELETE | `/api/usuarios/:id` | Desactivar usuario | ADMIN |
 
-#### Zonas
+#### Áreas
 | Método | Ruta | Descripción | Acceso |
 |---|---|---|---|
-| GET | `/api/zonas` | Listar zonas | Todos |
-| GET | `/api/zonas/:id` | Ver zona | Todos |
-| POST | `/api/zonas` | Crear zona | ADMIN |
-| PUT | `/api/zonas/:id` | Actualizar zona | ADMIN |
+| GET | `/api/areas` | Listar áreas | Todos |
+| GET | `/api/areas/:id` | Ver área | Todos |
+| POST | `/api/areas` | Crear área | ADMIN |
+| PUT | `/api/areas/:id` | Actualizar área | ADMIN |
 
 #### Gerencias
 | Método | Ruta | Descripción | Acceso |
@@ -258,7 +257,7 @@ Desde ahí puedes autenticarte con el botón **Authorize** (usar el token obteni
 | Método | Ruta | Descripción | Acceso |
 |---|---|---|---|
 | GET | `/api/solicitudes` | Listar solicitudes | Todos (filtrado por rol) |
-| GET | `/api/solicitudes/presupuesto` | Consultar gasto anual | Todos |
+| GET | `/api/solicitudes/presupuesto` | Consultar presupuesto del área | Todos |
 | GET | `/api/solicitudes/:id` | Ver solicitud | Todos (filtrado por rol) |
 | POST | `/api/solicitudes` | Crear solicitud | ADMIN, GERENTE, DELEGADO |
 | PATCH | `/api/solicitudes/:id/estado` | Cambiar estado (aprobar/rechazar) | ADMIN |
@@ -267,13 +266,16 @@ Desde ahí puedes autenticarte con el botón **Authorize** (usar el token obteni
 | DELETE | `/api/solicitudes/:id/fotos/:fotoId` | Eliminar foto de instalación | ADMIN |
 | POST | `/api/solicitudes/:id/archivos-personalizacion` | Subir archivo de personalización | ADMIN, GERENTE, DELEGADO |
 
+#### Agenda
+| Método | Ruta | Descripción | Acceso |
+|---|---|---|---|
+| GET | `/api/agenda` | Listar direcciones de entrega guardadas | Todos |
+| POST | `/api/agenda` | Añadir dirección a la agenda | Todos |
+| PUT | `/api/agenda/:id` | Actualizar dirección | Todos |
+| DELETE | `/api/agenda/:id` | Eliminar dirección | Todos |
+
 #### Configuración
 | Método | Ruta | Descripción | Acceso |
 |---|---|---|---|
 | GET | `/api/configuracion` | Ver configuración del sistema | Todos |
 | PUT | `/api/configuracion` | Actualizar configuración | ADMIN |
-
-#### Fabricante (público)
-| Método | Ruta | Descripción | Acceso |
-|---|---|---|---|
-| GET | `/api/fabricante/confirmar/:token` | Confirmar envío de pedido | Público (enlace por email) |

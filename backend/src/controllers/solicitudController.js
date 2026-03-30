@@ -1,12 +1,10 @@
 const path = require('path');
 const fs = require('fs').promises;
-const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { PATHS } = require('../lib/fileHelper');
 const {
   emailSolicitudRechazada,
   emailSolicitudEnFabricacion,
-  emailFabricanteConfirmacion,
   emailSolicitudCreada,
   emailSolicitudCompletada,
 } = require('../lib/email');
@@ -19,10 +17,11 @@ const solicitudInclude = {
       apellido1: true,
       apellido2: true,
       email: true,
+      rol: true,
       direccion: true,
       codigoPostal: true,
       localidad: true,
-      zona: { select: { id: true, nombre: true, direccion: true, codigoPostal: true, localidad: true } },
+      area: { select: { id: true, nombre: true, direccion: true, codigoPostal: true, localidad: true } },
     },
   },
   establecimiento: {
@@ -42,6 +41,7 @@ const solicitudInclude = {
       codigo: true,
       tipoPrecio: true,
       precioPublico: true,
+      tipoEstablecimiento: true,
       proveedor: { select: { id: true, nombre: true, contacto: true, emails: true } },
     },
   },
@@ -58,51 +58,77 @@ function calcularImporte(material) {
 }
 
 /**
- * Calcula el gasto anual acumulado de un usuario
- * Solo cuenta solicitudes no rechazadas
+ * Calcula el presupuesto de un área para un año fiscal natural.
+ * Excluye solicitudes RECHAZADAS y materiales de tipo CLINICA.
+ * Devuelve: limite, gastadoReal, comprometido, disponibleReal, disponibleNeto
  */
-async function calcularGastoAnual(where) {
-  const inicioAnio = new Date();
-  inicioAnio.setMonth(0, 1);
-  inicioAnio.setHours(0, 0, 0, 0);
+async function calcularPresupuestoArea(areaId, anio) {
+  const [config, nFarmacias, solicitudes] = await Promise.all([
+    prisma.configuracion.findUnique({ where: { id: 1 } }),
+    prisma.establecimiento.count({
+      where: { areaId, tipo: 'FARMACIA', activo: true },
+    }),
+    prisma.solicitud.findMany({
+      where: {
+        areaId,
+        anio,
+        estado:   { not: 'RECHAZADA' },
+        material: { tipoEstablecimiento: { not: 'CLINICA' } },
+      },
+      select: { importeTotal: true, estado: true },
+    }),
+  ]);
 
-  const solicitudes = await prisma.solicitud.findMany({
-    where: {
-      ...where,
-      estado: { notIn: ['RECHAZADA'] },
-      createdAt: { gte: inicioAnio },
-    },
-    select: { importeTotal: true },
-  });
+  const limitePorFarmacia = config?.limiteAnualPorFarmacia || 0;
+  const limite            = parseFloat((limitePorFarmacia * nFarmacias).toFixed(2));
 
-  return solicitudes.reduce((sum, s) => sum + (s.importeTotal || 0), 0);
+  const gastadoReal = parseFloat(
+    solicitudes
+      .filter(s => s.estado === 'EN_FABRICACION' || s.estado === 'COMPLETADA')
+      .reduce((sum, s) => sum + (s.importeTotal || 0), 0)
+      .toFixed(2)
+  );
+
+  const comprometido = parseFloat(
+    solicitudes
+      .filter(s => s.estado === 'PENDIENTE')
+      .reduce((sum, s) => sum + (s.importeTotal || 0), 0)
+      .toFixed(2)
+  );
+
+  const disponibleReal = parseFloat((limite - gastadoReal).toFixed(2));
+  const disponibleNeto = parseFloat((limite - gastadoReal - comprometido).toFixed(2));
+
+  return { limite, gastadoReal, comprometido, disponibleReal, disponibleNeto };
 }
 
 /**
- * Consultar estado de presupuesto antes de crear una solicitud
- * Devuelve si se superarían los límites con el importe dado
+ * Consultar presupuesto de un área
+ * Query params: areaId (opcional, si no se pasa usa el área del usuario autenticado)
+ *               importe (opcional, para consultar si superaría el disponible neto)
  */
 const getPresupuesto = async (req, res) => {
   try {
-    const { importe = 0 } = req.query;
+    const { areaId: areaIdQuery, importe = 0 } = req.query;
 
-    const config = await prisma.configuracion.findUnique({ where: { id: 1 } });
+    const areaId = areaIdQuery ? parseInt(areaIdQuery) : req.user.areaId;
+    if (!areaId) {
+      return res.status(400).json({ success: false, message: 'No se pudo determinar el área' });
+    }
 
-    const gastoAnual = await calcularGastoAnual({ usuarioId: req.user.id });
+    const anio        = new Date().getFullYear();
+    const presupuesto = await calcularPresupuestoArea(areaId, anio);
+    const importeNum  = parseFloat(importe);
 
-    const importeNum = parseFloat(importe);
-
-    const resultado = {
-      usuario: {
-        gastoAnual: parseFloat(gastoAnual.toFixed(2)),
-        limite:     config?.limiteUsuarioAnual || null,
-        superado:   config?.limiteUsuarioAnual
-                      ? (gastoAnual + importeNum) > config.limiteUsuarioAnual
-                      : false,
+    res.json({
+      success: true,
+      data: {
+        ...presupuesto,
+        anio,
+        importeConsulta:       importeNum,
+        superaDisponibleNeto:  importeNum > 0 ? (presupuesto.disponibleNeto - importeNum) < 0 : false,
       },
-    };
-
-    res.json({ success: true, data: resultado });
+    });
   } catch (error) {
     console.error('Error al consultar presupuesto:', error);
     res.status(500).json({
@@ -121,10 +147,12 @@ const createSolicitud = async (req, res) => {
     const {
       establecimientoId,
       eventoNombre,
+      imputadoId: imputadoIdBody,
       materialId,
       altoCm,
       anchoCm,
       orientacion,
+      lenguaPersonalizacion,
       personalizarNombre       = false,
       descripcionPersonalizada,
       talla,
@@ -138,7 +166,7 @@ const createSolicitud = async (req, res) => {
       observaciones,
     } = req.body;
 
-    // Verificar material primero (necesitamos saber si permiteEvento)
+    let establecimiento = null;
     const material = await prisma.material.findFirst({
       where: { id: parseInt(materialId), activo: true },
     });
@@ -146,8 +174,7 @@ const createSolicitud = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Material no encontrado' });
     }
 
-    // Determinar si es una solicitud de evento
-    const esEvento = !establecimientoId && !!eventoNombre;
+    const esEvento = material.tipoEstablecimiento === 'EVENTO';
 
     if (esEvento) {
       // DELEGADOs no pueden crear solicitudes de evento
@@ -157,20 +184,13 @@ const createSolicitud = async (req, res) => {
           message: 'Los delegados no pueden crear solicitudes para eventos',
         });
       }
-      // El material debe permitir eventos
-      if (!material.permiteEvento) {
-        return res.status(400).json({
-          success: false,
-          message: 'Este material no está disponible para eventos',
-        });
-      }
     } else {
       // Solicitud normal: verificar establecimiento
       if (!establecimientoId) {
-        return res.status(400).json({ success: false, message: 'Debe indicar un establecimiento o un nombre de evento' });
+        return res.status(400).json({ success: false, message: 'Debe indicar un establecimiento' });
       }
 
-      const establecimiento = await prisma.establecimiento.findFirst({
+      establecimiento = await prisma.establecimiento.findFirst({
         where: { id: parseInt(establecimientoId), activo: true },
       });
       if (!establecimiento) {
@@ -187,13 +207,13 @@ const createSolicitud = async (req, res) => {
         }
       }
 
-      // GERENTE solo puede solicitar para establecimientos de su zona
+      // GERENTE solo puede solicitar para establecimientos de su área
       if (req.user.rol === 'GERENTE') {
         const delegado = await prisma.usuario.findUnique({
           where: { id: establecimiento.delegadoId },
-          select: { zonaId: true },
+          select: { areaId: true },
         });
-        if (!delegado || delegado.zonaId !== req.user.zonaId) {
+        if (!delegado || delegado.areaId !== req.user.areaId) {
           return res.status(403).json({
             success: false,
             message: 'No tienes permiso para solicitar material para este establecimiento',
@@ -211,6 +231,20 @@ const createSolicitud = async (req, res) => {
       });
     }
 
+    // Validar máximos de medidas
+    if (material.altoMaxCm && altoCm > material.altoMaxCm) {
+      return res.status(400).json({
+        success: false,
+        message: `El alto no puede superar ${material.altoMaxCm} cm para este material`,
+      });
+    }
+    if (material.anchoMaxCm && anchoCm > material.anchoMaxCm) {
+      return res.status(400).json({
+        success: false,
+        message: `El ancho no puede superar ${material.anchoMaxCm} cm para este material`,
+      });
+    }
+
     // Validar talla si el material la requiere
     if (material.permiteTalla && !talla) {
       return res.status(400).json({
@@ -220,14 +254,41 @@ const createSolicitud = async (req, res) => {
     }
 
     const importeTotal = calcularImporte(material);
+    const anio         = new Date().getFullYear();
 
-    // Calcular aviso de presupuesto anual (límite blando — no bloquea)
-    const config = await prisma.configuracion.findUnique({ where: { id: 1 } });
-    const gastoAnual = await calcularGastoAnual({ usuarioId: req.user.id });
+    // Derivar imputadoId y areaId según tipo de material y rol
+    let imputadoId, areaId;
 
-    const avisoLimiteUsuario = config?.limiteUsuarioAnual
-      ? (gastoAnual + importeTotal) > config.limiteUsuarioAnual
-      : false;
+    if (esEvento) {
+      if (req.user.rol === 'ADMIN') {
+        if (!imputadoIdBody) {
+          return res.status(400).json({ success: false, message: 'Debe indicar a quién imputar el gasto del evento' });
+        }
+        const imputado = await prisma.usuario.findUnique({
+          where:  { id: parseInt(imputadoIdBody) },
+          select: { id: true, rol: true, areaId: true },
+        });
+        if (!imputado || imputado.rol !== 'GERENTE') {
+          return res.status(400).json({ success: false, message: 'El imputado debe ser un gerente' });
+        }
+        imputadoId = imputado.id;
+        areaId     = imputado.areaId;
+      } else {
+        // GERENTE crea evento — se imputa a sí mismo
+        imputadoId = req.user.id;
+        areaId     = req.user.areaId;
+      }
+    } else {
+      imputadoId = establecimiento.delegadoId || null;
+      areaId     = establecimiento.areaId     || null;
+    }
+
+    // Calcular aviso de presupuesto del área (límite blando — no bloquea)
+    let avisoLimiteArea = false;
+    if (areaId) {
+      const presupuesto = await calcularPresupuestoArea(areaId, anio);
+      avisoLimiteArea = (presupuesto.disponibleNeto - importeTotal) < 0;
+    }
 
     const solicitud = await prisma.solicitud.create({
       data: {
@@ -239,6 +300,7 @@ const createSolicitud = async (req, res) => {
         altoCm:                  altoCm  ? parseInt(altoCm)  : null,
         anchoCm:                 anchoCm ? parseInt(anchoCm) : null,
         orientacion:             orientacion || null,
+        lenguaPersonalizacion:    lenguaPersonalizacion    || null,
         personalizarNombre,
         descripcionPersonalizada: descripcionPersonalizada || null,
         talla:                   talla || null,
@@ -250,7 +312,10 @@ const createSolicitud = async (req, res) => {
         provinciaEntrega:        provinciaEntrega || null,
         telefonoEntrega:         telefonoEntrega  || null,
         observaciones:           observaciones || null,
-        avisoLimiteUsuario,
+        imputadoId:              imputadoId || null,
+        areaId:                  areaId     || null,
+        anio,
+        avisoLimiteArea,
       },
       include: solicitudInclude,
     });
@@ -290,31 +355,42 @@ const createSolicitud = async (req, res) => {
  */
 const getAllSolicitudes = async (req, res) => {
   try {
-    const { page = 1, limit = 20, estado, search } = req.query;
+    const { page = 1, limit = 20, estado, search, establecimientoId, anio } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
     const where = {};
 
-    // DELEGADO solo ve sus solicitudes
+    // DELEGADO ve sus solicitudes + las imputadas a él (creadas por gerente/admin para sus farmacias)
     if (req.user.rol === 'DELEGADO') {
-      where.usuarioId = req.user.id;
+      where.OR = [
+        { usuarioId: req.user.id },
+        { imputadoId: req.user.id },
+      ];
     }
 
-    // GERENTE ve las solicitudes de su zona
+    // GERENTE ve las solicitudes de su área
     if (req.user.rol === 'GERENTE') {
-      where.usuario = { zonaId: req.user.zonaId };
+      where.usuario = { areaId: req.user.areaId };
     }
 
     if (estado) where.estado = estado;
+    if (establecimientoId) where.establecimientoId = parseInt(establecimientoId);
+    if (anio) where.anio = parseInt(anio);
 
     if (search) {
-      where.OR = [
+      const searchOr = [
         { establecimiento: { nombre: { contains: search } } },
         { material:        { nombre: { contains: search } } },
         { usuario:         { nombre: { contains: search } } },
       ];
+      // Si ya hay un OR (del filtro de DELEGADO), combinamos via AND para no sobreescribirlo
+      if (where.OR) {
+        where.AND = [{ OR: searchOr }];
+      } else {
+        where.OR = searchOr;
+      }
     }
 
     const [solicitudes, total] = await Promise.all([
@@ -357,7 +433,7 @@ const getSolicitudById = async (req, res) => {
 
     const where = { id: parseInt(id) };
     if (req.user.rol === 'DELEGADO') where.usuarioId = req.user.id;
-    if (req.user.rol === 'GERENTE')  where.usuario   = { zonaId: req.user.zonaId };
+    if (req.user.rol === 'GERENTE')  where.usuario   = { areaId: req.user.areaId };
 
     const solicitud = await prisma.solicitud.findFirst({
       where,
@@ -382,8 +458,7 @@ const getSolicitudById = async (req, res) => {
 /**
  * Cambiar estado de una solicitud (solo ADMIN)
  * Flujo: PENDIENTE → EN_FABRICACION | RECHAZADA
- *        EN_FABRICACION/ENVIADA → COMPLETADA (lo hace el solicitante via /completar)
- *        ENVIADA: la marca el fabricante via token público
+ *        EN_FABRICACION → COMPLETADA (lo hace el solicitante via /completar)
  */
 const cambiarEstado = async (req, res) => {
   try {
@@ -415,18 +490,18 @@ const cambiarEstado = async (req, res) => {
 
     if (estado === 'RECHAZADA') updateData.rechazadaEn = new Date();
 
-    // Al pasar a EN_FABRICACION: fijar dirección, proveedor y generar token para fabricante
+    // Al pasar a EN_FABRICACION: fijar dirección y proveedor
     if (estado === 'EN_FABRICACION') {
       const usuario = await prisma.usuario.findUnique({
         where: { id: solicitud.usuarioId },
         include: {
-          zona: {
+          area: {
             include: { gerencias: { include: { gerencia: true }, take: 1 } },
           },
         },
       });
 
-      const gerencia = usuario?.zona?.gerencias?.[0]?.gerencia;
+      const gerencia = usuario?.area?.gerencias?.[0]?.gerencia;
 
       if (proveedorEnviadoId) {
         updateData.proveedorEnviadoId = parseInt(proveedorEnviadoId);
@@ -446,8 +521,6 @@ const cambiarEstado = async (req, res) => {
       updateData.provinciaEntregaFinal    = solicitud.provinciaEntrega    || gerencia?.provincia    || null;
       updateData.telefonoEntregaFinal     = solicitud.telefonoEntrega     || null;
 
-      // Token único para que el fabricante confirme el envío
-      updateData.tokenFabricante = crypto.randomBytes(32).toString('hex');
     }
 
     const updated = await prisma.solicitud.update({
@@ -459,17 +532,17 @@ const cambiarEstado = async (req, res) => {
     // ── Notificaciones por email (en background, no bloquean la respuesta) ──
     setImmediate(async () => {
       try {
-        // Obtener solicitante y su gerente de zona (si lo hay)
+        // Obtener solicitante y su gerente de área (si lo hay)
         const solicitante = await prisma.usuario.findUnique({
           where: { id: solicitud.usuarioId },
-          include: { zona: { include: { gerencias: { include: { gerencia: false } } } } },
+          include: { area: { include: { gerencias: { include: { gerencia: false } } } } },
         });
 
-        // Buscar gerente de la zona del solicitante
+        // Buscar gerente del área del solicitante
         let gerente = null;
-        if (solicitante?.zonaId) {
+        if (solicitante?.areaId) {
           gerente = await prisma.usuario.findFirst({
-            where: { rol: 'GERENTE', zonaId: solicitante.zonaId, activo: true },
+            where: { rol: 'GERENTE', areaId: solicitante.areaId, activo: true },
           });
         }
 
@@ -492,14 +565,15 @@ const cambiarEstado = async (req, res) => {
             }
           }
 
-          // Email al fabricante con enlace de confirmación
+          // Email al fabricante (sin enlace de confirmación)
           const proveedor = updated.proveedorEnviado || updated.material?.proveedor;
           if (proveedor?.emails?.length) {
             const emailProduccion = proveedor.emails.find(e => e.tipo === 'PRODUCCION');
             const emailDefault    = proveedor.emails.find(e => e.tipo === 'DEFAULT');
             const emailDest = emailProduccion || emailDefault;
             if (emailDest) {
-              await emailFabricanteConfirmacion({
+              const { emailFabricanteNuevoPedido } = require('../lib/email');
+              await emailFabricanteNuevoPedido({
                 solicitud:      updated,
                 emailProveedor: emailDest.email,
                 nombreProveedor: proveedor.nombre,
@@ -543,10 +617,10 @@ const completarSolicitud = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
     }
 
-    if (!['EN_FABRICACION', 'ENVIADA'].includes(solicitud.estado)) {
+    if (solicitud.estado !== 'EN_FABRICACION') {
       return res.status(400).json({
         success: false,
-        message: 'Solo se pueden completar solicitudes en estado EN_FABRICACION o ENVIADA',
+        message: 'Solo se pueden completar solicitudes en estado EN_FABRICACION',
       });
     }
 

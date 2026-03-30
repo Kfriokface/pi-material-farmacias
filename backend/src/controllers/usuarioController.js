@@ -9,8 +9,8 @@ const usuarioSelect = {
   apellido1: true,
   apellido2: true,
   rol: true,
-  zonaId: true,
-  zona: { select: { id: true, nombre: true } },
+  areaId: true,
+  area: { select: { id: true, nombre: true } },
   numeroSAP: true,
   direccion: true,
   codigoPostal: true,
@@ -30,7 +30,7 @@ const usuarioSelect = {
  */
 const getAllUsuarios = async (req, res) => {
   try {
-    const { page = 1, limit = 20, rol, zonaId, search } = req.query;
+    const { page = 1, limit = 20, rol, areaId, search } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
@@ -38,7 +38,7 @@ const getAllUsuarios = async (req, res) => {
     const where = { ...req.filterActivo };
 
     if (rol) where.rol = rol;
-    if (zonaId) where.zonaId = parseInt(zonaId);
+    if (areaId) where.areaId = parseInt(areaId);
 
     if (search) {
       where.OR = [
@@ -138,7 +138,7 @@ const updateUsuario = async (req, res) => {
       apellido1,
       apellido2,
       rol,
-      zonaId,
+      areaId,
       numeroSAP,
       direccion,
       codigoPostal,
@@ -160,15 +160,15 @@ const updateUsuario = async (req, res) => {
       });
     }
 
-    // Verificar zona si se proporciona
-    if (zonaId) {
-      const zona = await prisma.zona.findUnique({
-        where: { id: parseInt(zonaId) },
+    // Verificar área si se proporciona
+    if (areaId) {
+      const area = await prisma.area.findUnique({
+        where: { id: parseInt(areaId) },
       });
-      if (!zona) {
+      if (!area) {
         return res.status(400).json({
           success: false,
-          message: 'La zona no existe',
+          message: 'El área no existe',
         });
       }
     }
@@ -180,7 +180,7 @@ const updateUsuario = async (req, res) => {
         apellido1,
         apellido2,
         rol,
-        zonaId: zonaId ? parseInt(zonaId) : undefined,
+        areaId: areaId ? parseInt(areaId) : undefined,
         numeroSAP,
         direccion,
         codigoPostal,

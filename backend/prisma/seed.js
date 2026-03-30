@@ -26,10 +26,12 @@ async function procesarImagenAvatar(srcPath) {
 
 async function procesarImagenMaterial(srcPath) {
   const filenamePrincipal = await processImage(srcPath, PATHS.materialesPrincipales, 'principal', false);
+  const filenameZoom      = await processImage(srcPath, PATHS.materialesPrincipales, 'zoom',      false);
   const filenameThumbnail = await processImage(srcPath, PATHS.materialesPrincipales, 'thumbnail', false);
   return {
-    imagen:    `materiales/principales/${filenamePrincipal}`,
-    thumbnail: `materiales/principales/${filenameThumbnail}`,
+    imagen:     `materiales/principales/${filenamePrincipal}`,
+    imagenZoom: `materiales/principales/${filenameZoom}`,
+    thumbnail:  `materiales/principales/${filenameThumbnail}`,
   };
 }
 
@@ -48,25 +50,25 @@ async function main() {
   await prisma.marca.deleteMany();
   await prisma.proveedor.deleteMany();
   await prisma.usuario.deleteMany();
-  await prisma.gerencia.deleteMany(); // cascade → gerenciaZona
-  await prisma.zona.deleteMany();
+  await prisma.gerencia.deleteMany(); // cascade → gerenciaArea
+  await prisma.area.deleteMany();
   await prisma.configuracion.deleteMany();
   console.log('  Base de datos limpia');
 
   // ============================================
-  // ZONAS
+  // ÁREAS
   // ============================================
-  console.log('Creando zonas...');
-  const [zona1, zona2, zona3, zona4] = await Promise.all([
-    prisma.zona.create({ data: { nombre: 'Madrid Centro' } }),
-    prisma.zona.create({ data: { nombre: 'Madrid Periferia' } }),
-    prisma.zona.create({ data: { nombre: 'Sevilla' } }),
-    prisma.zona.create({ data: { nombre: 'Córdoba' } }),
+  console.log('Creando áreas...');
+  const [area1, area2, area3, area4] = await Promise.all([
+    prisma.area.create({ data: { nombre: 'Madrid Centro' } }),
+    prisma.area.create({ data: { nombre: 'Madrid Periferia' } }),
+    prisma.area.create({ data: { nombre: 'Sevilla' } }),
+    prisma.area.create({ data: { nombre: 'Córdoba' } }),
   ]);
-  console.log('  4 zonas creadas (Madrid Centro, Madrid Periferia, Sevilla, Córdoba)');
+  console.log('  4 áreas creadas (Madrid Centro, Madrid Periferia, Sevilla, Córdoba)');
 
   // ============================================
-  // GERENCIAS (con zonas asociadas)
+  // GERENCIAS (con áreas asociadas)
   // Gerencia Centro → Madrid Centro + Madrid Periferia
   // Gerencia Sur    → Sevilla + Córdoba
   // ============================================
@@ -79,10 +81,10 @@ async function main() {
         codigoPostal: '28004',
         localidad:    'Madrid',
         provincia:    'Madrid',
-        zonas: {
+        areas: {
           create: [
-            { zonaId: zona1.id },
-            { zonaId: zona2.id },
+            { areaId: area1.id },
+            { areaId: area2.id },
           ],
         },
       },
@@ -94,10 +96,10 @@ async function main() {
         codigoPostal: '41001',
         localidad:    'Sevilla',
         provincia:    'Sevilla',
-        zonas: {
+        areas: {
           create: [
-            { zonaId: zona3.id },
-            { zonaId: zona4.id },
+            { areaId: area3.id },
+            { areaId: area4.id },
           ],
         },
       },
@@ -109,7 +111,7 @@ async function main() {
 
   // ============================================
   // USUARIOS
-  // 1 admin + 4 gerentes (1/zona) + 8 delegados (2/zona)
+  // 1 admin + 4 gerentes (1/área) + 8 delegados (2/área)
   // ============================================
   console.log('Procesando avatar por defecto...');
   const avatarDefault = await procesarImagenAvatar(IMG_SRC.avatarDefault);
@@ -129,7 +131,7 @@ async function main() {
       data: {
         email:        'admin@example.com',
         password:     hashedPassword,
-        nombre:       'Ejemplo',
+        nombre:       'Prueba',
         apellido1:    'Admin',
         rol:          'ADMIN',
         avatar:       avatarDefault,
@@ -140,22 +142,22 @@ async function main() {
     }),
 
     // ── GERENTES ─────────────────────────────
-    // Gerente Zona Madrid Centro
+    // Gerente Área Madrid Centro
     prisma.usuario.create({
       data: {
         email:        'gerente@example.com',
         password:     hashedPassword,
-        nombre:       'Ejemplo',
+        nombre:       'Prueba',
         apellido1:    'Gerente',
         rol:          'GERENTE',
         avatar:       avatarDefault,
-        zonaId:       zona1.id,
+        areaId:       area1.id,
         direccion:    'Calle Génova, 20',
         codigoPostal: '28004',
         localidad:    'Madrid',
       },
     }),
-    // Gerente Zona Madrid Periferia
+    // Gerente Área Madrid Periferia
     prisma.usuario.create({
       data: {
         email:        'gerente2@example.com',
@@ -165,13 +167,13 @@ async function main() {
         apellido2:    'Ramos',
         rol:          'GERENTE',
         avatar:       avatarDefault,
-        zonaId:       zona2.id,
+        areaId:       area2.id,
         direccion:    'Avenida de España, 5',
         codigoPostal: '28901',
         localidad:    'Getafe',
       },
     }),
-    // Gerente Zona Sevilla
+    // Gerente Área Sevilla
     prisma.usuario.create({
       data: {
         email:        'gerente3@example.com',
@@ -181,13 +183,13 @@ async function main() {
         apellido2:    'Torres',
         rol:          'GERENTE',
         avatar:       avatarDefault,
-        zonaId:       zona3.id,
+        areaId:       area3.id,
         direccion:    'Calle Sierpes, 30',
         codigoPostal: '41001',
         localidad:    'Sevilla',
       },
     }),
-    // Gerente Zona Córdoba
+    // Gerente Área Córdoba
     prisma.usuario.create({
       data: {
         email:        'gerente4@example.com',
@@ -197,7 +199,7 @@ async function main() {
         apellido2:    'Jiménez',
         rol:          'GERENTE',
         avatar:       avatarDefault,
-        zonaId:       zona4.id,
+        areaId:       area4.id,
         direccion:    'Calle Cruz Conde, 8',
         codigoPostal: '14001',
         localidad:    'Córdoba',
@@ -209,11 +211,11 @@ async function main() {
       data: {
         email:        'delegado@example.com',
         password:     hashedPassword,
-        nombre:       'Ejemplo',
+        nombre:       'Prueba',
         apellido1:    'Delegado',
         rol:          'DELEGADO',
         avatar:       avatarDefault,
-        zonaId:       zona1.id,
+        areaId:       area1.id,
         direccion:    'Calle Mayor, 20',
         codigoPostal: '28013',
         localidad:    'Madrid',
@@ -228,7 +230,7 @@ async function main() {
         apellido2:    'García',
         rol:          'DELEGADO',
         avatar:       avatarDefault,
-        zonaId:       zona1.id,
+        areaId:       area1.id,
         direccion:    'Calle Fuencarral, 45',
         codigoPostal: '28004',
         localidad:    'Madrid',
@@ -245,7 +247,7 @@ async function main() {
         apellido2:    'Fernández',
         rol:          'DELEGADO',
         avatar:       avatarDefault,
-        zonaId:       zona2.id,
+        areaId:       area2.id,
         direccion:    'Calle Toledo, 12',
         codigoPostal: '28901',
         localidad:    'Getafe',
@@ -260,7 +262,7 @@ async function main() {
         apellido2:    'Molina',
         rol:          'DELEGADO',
         avatar:       avatarDefault,
-        zonaId:       zona2.id,
+        areaId:       area2.id,
         direccion:    'Avenida de Madrid, 33',
         codigoPostal: '28100',
         localidad:    'Alcobendas',
@@ -277,7 +279,7 @@ async function main() {
         apellido2:    'Moreno',
         rol:          'DELEGADO',
         avatar:       avatarDefault,
-        zonaId:       zona3.id,
+        areaId:       area3.id,
         direccion:    'Calle Betis, 12',
         codigoPostal: '41010',
         localidad:    'Sevilla',
@@ -292,7 +294,7 @@ async function main() {
         apellido2:    'Pérez',
         rol:          'DELEGADO',
         avatar:       avatarDefault,
-        zonaId:       zona3.id,
+        areaId:       area3.id,
         direccion:    'Avenida de la Palmera, 5',
         codigoPostal: '41012',
         localidad:    'Sevilla',
@@ -309,7 +311,7 @@ async function main() {
         apellido2:    'Blanco',
         rol:          'DELEGADO',
         avatar:       avatarDefault,
-        zonaId:       zona4.id,
+        areaId:       area4.id,
         direccion:    'Calle Gondomar, 3',
         codigoPostal: '14001',
         localidad:    'Córdoba',
@@ -324,7 +326,7 @@ async function main() {
         apellido2:    'Vega',
         rol:          'DELEGADO',
         avatar:       avatarDefault,
-        zonaId:       zona4.id,
+        areaId:       area4.id,
         direccion:    'Avenida del Brillante, 20',
         codigoPostal: '14012',
         localidad:    'Córdoba',
@@ -351,7 +353,7 @@ async function main() {
         localidad:    'Madrid',
         provincia:    'Madrid',
         codigoPostal: '28004',
-        zonaId:       zona1.id,
+        areaId:       area1.id,
         delegadoId:   gerente1.id,
       },
     }),
@@ -363,7 +365,7 @@ async function main() {
         localidad:    'Madrid',
         provincia:    'Madrid',
         codigoPostal: '28001',
-        zonaId:       zona1.id,
+        areaId:       area1.id,
         delegadoId:   gerente1.id,
       },
     }),
@@ -376,7 +378,7 @@ async function main() {
         localidad:    'Getafe',
         provincia:    'Madrid',
         codigoPostal: '28901',
-        zonaId:       zona2.id,
+        areaId:       area2.id,
         delegadoId:   gerente2.id,
       },
     }),
@@ -389,7 +391,7 @@ async function main() {
         localidad:    'Sevilla',
         provincia:    'Sevilla',
         codigoPostal: '41001',
-        zonaId:       zona3.id,
+        areaId:       area3.id,
         delegadoId:   gerente3.id,
       },
     }),
@@ -401,7 +403,7 @@ async function main() {
         localidad:    'Sevilla',
         provincia:    'Sevilla',
         codigoPostal: '41010',
-        zonaId:       zona3.id,
+        areaId:       area3.id,
         delegadoId:   gerente3.id,
       },
     }),
@@ -414,7 +416,7 @@ async function main() {
         localidad:    'Córdoba',
         provincia:    'Córdoba',
         codigoPostal: '14001',
-        zonaId:       zona4.id,
+        areaId:       area4.id,
         delegadoId:   gerente4.id,
       },
     }),
@@ -428,7 +430,7 @@ async function main() {
         localidad:    'Madrid',
         provincia:    'Madrid',
         codigoPostal: '28013',
-        zonaId:       zona1.id,
+        areaId:       area1.id,
         delegadoId:   delegado1.id,
       },
     }),
@@ -440,7 +442,7 @@ async function main() {
         localidad:    'Madrid',
         provincia:    'Madrid',
         codigoPostal: '28013',
-        zonaId:       zona1.id,
+        areaId:       area1.id,
         delegadoId:   delegado1.id,
       },
     }),
@@ -452,7 +454,7 @@ async function main() {
         localidad:    'Madrid',
         provincia:    'Madrid',
         codigoPostal: '28004',
-        zonaId:       zona1.id,
+        areaId:       area1.id,
         delegadoId:   delegado2.id,
       },
     }),
@@ -464,7 +466,7 @@ async function main() {
         localidad:    'Madrid',
         provincia:    'Madrid',
         codigoPostal: '28009',
-        zonaId:       zona1.id,
+        areaId:       area1.id,
         delegadoId:   delegado2.id,
       },
     }),
@@ -478,7 +480,7 @@ async function main() {
         localidad:    'Getafe',
         provincia:    'Madrid',
         codigoPostal: '28901',
-        zonaId:       zona2.id,
+        areaId:       area2.id,
         delegadoId:   delegado3.id,
       },
     }),
@@ -490,7 +492,7 @@ async function main() {
         localidad:    'Leganés',
         provincia:    'Madrid',
         codigoPostal: '28914',
-        zonaId:       zona2.id,
+        areaId:       area2.id,
         delegadoId:   delegado3.id,
       },
     }),
@@ -502,7 +504,7 @@ async function main() {
         localidad:    'Alcobendas',
         provincia:    'Madrid',
         codigoPostal: '28100',
-        zonaId:       zona2.id,
+        areaId:       area2.id,
         delegadoId:   delegado4.id,
       },
     }),
@@ -514,7 +516,7 @@ async function main() {
         localidad:    'Alcalá de Henares',
         provincia:    'Madrid',
         codigoPostal: '28801',
-        zonaId:       zona2.id,
+        areaId:       area2.id,
         delegadoId:   delegado4.id,
       },
     }),
@@ -528,7 +530,7 @@ async function main() {
         localidad:    'Sevilla',
         provincia:    'Sevilla',
         codigoPostal: '41010',
-        zonaId:       zona3.id,
+        areaId:       area3.id,
         delegadoId:   delegado5.id,
       },
     }),
@@ -540,7 +542,7 @@ async function main() {
         localidad:    'Sevilla',
         provincia:    'Sevilla',
         codigoPostal: '41005',
-        zonaId:       zona3.id,
+        areaId:       area3.id,
         delegadoId:   delegado5.id,
       },
     }),
@@ -552,7 +554,7 @@ async function main() {
         localidad:    'Sevilla',
         provincia:    'Sevilla',
         codigoPostal: '41003',
-        zonaId:       zona3.id,
+        areaId:       area3.id,
         delegadoId:   delegado6.id,
       },
     }),
@@ -564,7 +566,7 @@ async function main() {
         localidad:    'Dos Hermanas',
         provincia:    'Sevilla',
         codigoPostal: '41700',
-        zonaId:       zona3.id,
+        areaId:       area3.id,
         delegadoId:   delegado6.id,
       },
     }),
@@ -578,7 +580,7 @@ async function main() {
         localidad:    'Córdoba',
         provincia:    'Córdoba',
         codigoPostal: '14001',
-        zonaId:       zona4.id,
+        areaId:       area4.id,
         delegadoId:   delegado7.id,
       },
     }),
@@ -590,7 +592,7 @@ async function main() {
         localidad:    'Córdoba',
         provincia:    'Córdoba',
         codigoPostal: '14012',
-        zonaId:       zona4.id,
+        areaId:       area4.id,
         delegadoId:   delegado7.id,
       },
     }),
@@ -602,7 +604,7 @@ async function main() {
         localidad:    'Lucena',
         provincia:    'Córdoba',
         codigoPostal: '14900',
-        zonaId:       zona4.id,
+        areaId:       area4.id,
         delegadoId:   delegado8.id,
       },
     }),
@@ -614,7 +616,7 @@ async function main() {
         localidad:    'Puente Genil',
         provincia:    'Córdoba',
         codigoPostal: '14500',
-        zonaId:       zona4.id,
+        areaId:       area4.id,
         delegadoId:   delegado8.id,
       },
     }),
@@ -652,8 +654,8 @@ async function main() {
         observaciones: 'Proveedor principal de material impreso. Plazo de entrega habitual: 10 días laborables.',
         emails: {
           create: [
-            { email: 'pedidos@graficasiberia.com',    tipo: 'DEFAULT'    },
-            { email: 'produccion@graficasiberia.com', tipo: 'PRODUCCION' },
+            { email: 'pedidos@example.com',    tipo: 'DEFAULT'    },
+            { email: 'produccion@example.com', tipo: 'PRODUCCION' },
           ],
         },
       },
@@ -670,7 +672,7 @@ async function main() {
         observaciones: 'Especialistas en batas y textil promocional. Plazo de entrega: 15 días laborables.',
         emails: {
           create: [
-            { email: 'pedidos@textilpromoeuropa.com', tipo: 'DEFAULT' },
+            { email: 'pedidos@example.com',    tipo: 'DEFAULT'    },
           ],
         },
       },
@@ -698,11 +700,13 @@ async function main() {
         descripcion:         'Vinilo adhesivo para escaparate. El delegado debe indicar las medidas en la solicitud.',
         precio:              5.00,
         precioPublico:       8.00,
-        tipoPrecio:          'METRO2',
-        permiteAltoAncho:    true,
-        permitePersonalizar: true,
-        proveedorId:         proveedor1.id,
+        tipoPrecio:             'METRO2',
+        permiteAltoAncho:       true,
+        permitePersonalizar:    true,
+        tipoEstablecimiento:    'FARMACIA',
+        proveedorId:            proveedor1.id,
         imagen:              imgVinilo.imagen,
+        imagenZoom:          imgVinilo.imagenZoom,
         thumbnail:           imgVinilo.thumbnail,
       },
     }),
@@ -716,35 +720,41 @@ async function main() {
         tipoPrecio:                 'UNIDAD',
         permiteTalla:               true,
         permitePersonalizacionBata: true,
+        tipoEstablecimiento:        'FARMACIA',
         proveedorId:                proveedor2.id,
         imagen:                     imgBata.imagen,
+        imagenZoom:                 imgBata.imagenZoom,
         thumbnail:                  imgBata.thumbnail,
       },
     }),
     prisma.material.create({
       data: {
-        codigo:        'MAT-3',
-        nombre:        'Kit Promocional',
-        descripcion:   'Kit de material promocional. Sin especificaciones adicionales.',
-        precio:        5.00,
-        precioPublico: 7.00,
-        tipoPrecio:    'UNIDAD',
-        proveedorId:   proveedor1.id,
+        codigo:              'MAT-3',
+        nombre:              'Kit Promocional',
+        descripcion:         'Kit de material promocional. Sin especificaciones adicionales.',
+        precio:              5.00,
+        precioPublico:       7.00,
+        tipoPrecio:          'UNIDAD',
+        tipoEstablecimiento: 'CLINICA',
+        proveedorId:         proveedor1.id,
         imagen:        imgKit.imagen,
+        imagenZoom:    imgKit.imagenZoom,
         thumbnail:     imgKit.thumbnail,
       },
     }),
     prisma.material.create({
       data: {
-        codigo:        'MAT-4',
-        nombre:        'Roll Up',
-        descripcion:   'Roll up publicitario. Siempre en formato vertical.',
-        precio:        27.00,
-        precioPublico: 30.00,
-        tipoPrecio:    'UNIDAD',
-        orientacion:   'VERTICAL',
-        proveedorId:   proveedor1.id,
+        codigo:              'MAT-4',
+        nombre:              'Roll Up',
+        descripcion:         'Roll up publicitario. Siempre en formato vertical.',
+        precio:              27.00,
+        precioPublico:       30.00,
+        tipoPrecio:          'UNIDAD',
+        orientacion:         'VERTICAL',
+        tipoEstablecimiento: 'EVENTO',
+        proveedorId:         proveedor1.id,
         imagen:        imgRollUp.imagen,
+        imagenZoom:    imgRollUp.imagenZoom,
         thumbnail:     imgRollUp.thumbnail,
       },
     }),
@@ -758,8 +768,8 @@ async function main() {
   await prisma.configuracion.create({
     data: {
       id:                  1,
-      limiteUsuarioAnual:  120.00,
-      soporteNombre:       'Soporte Técnico',
+      limiteAnualPorFarmacia: 50.00,
+      soporteNombre:       'Alberto Sancho',
       soporteEmail:        'soporte@example.com',
       soporteTelefono:     '+34 600 000 000',
       appNombre:           'Material Farmacias',
@@ -778,8 +788,8 @@ async function main() {
   console.log('\nEstructura de datos:');
   console.log('\n  Gerencia Centro');
   console.log('    ├── Madrid Centro');
-  console.log('    │     ├── gerente1  gerente1@example.com          → Clínica Centro Madrid 1, Clínica Centro Madrid 2');
-  console.log('    │     ├── delegado1 delegado1@example.com         → Farmacia Mayor, Farmacia Gran Vía');
+  console.log('    │     ├── gerente1  gerente@example.com           → Clínica Centro Madrid 1, Clínica Centro Madrid 2');
+  console.log('    │     ├── delegado1 delegado@example.com          → Farmacia Mayor, Farmacia Gran Vía');
   console.log('    │     └── delegado2 delegado2@example.com         → Farmacia Fuencarral, Farmacia Retiro');
   console.log('    └── Madrid Periferia');
   console.log('          ├── gerente2  gerente2@example.com          → Clínica Getafe');
@@ -796,11 +806,11 @@ async function main() {
   console.log('          └── delegado8 delegado8@example.com         → Farmacia Lucena, Farmacia Puente Genil');
   console.log('\nCredenciales (todas): password123');
   console.log('  admin@example.com             → ADMIN');
-  console.log('  gerente1@example.com          → GERENTE Madrid Centro');
+  console.log('  gerente@example.com           → GERENTE Madrid Centro');
   console.log('  gerente2@example.com          → GERENTE Madrid Periferia');
   console.log('  gerente3@example.com          → GERENTE Sevilla');
   console.log('  gerente4@example.com          → GERENTE Córdoba');
-  console.log('  delegado1@example.com         → DELEGADO Madrid Centro');
+  console.log('  delegado@example.com          → DELEGADO Madrid Centro');
   console.log('  delegado2@example.com         → DELEGADO Madrid Centro');
   console.log('  delegado3@example.com         → DELEGADO Madrid Periferia');
   console.log('  delegado4@example.com         → DELEGADO Madrid Periferia');

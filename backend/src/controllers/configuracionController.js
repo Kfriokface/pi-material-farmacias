@@ -30,7 +30,7 @@ const getConfiguracion = async (req, res) => {
 const updateConfiguracion = async (req, res) => {
   try {
     const {
-      limiteUsuarioAnual,
+      limiteAnualPorFarmacia,
       soporteNombre,
       soporteEmail,
       soporteTelefono,
@@ -38,18 +38,26 @@ const updateConfiguracion = async (req, res) => {
       avisoActivo,
       avisoTexto,
       emailAdmin,
+      entregaDefaultDireccion,
+      entregaDefaultCodigoPostal,
+      entregaDefaultLocalidad,
+      entregaDefaultProvincia,
     } = req.body;
 
     // Construir objeto de actualización solo con los campos que vienen
     const data = {};
-    if (limiteUsuarioAnual          !== undefined) data.limiteUsuarioAnual          = limiteUsuarioAnual;
-    if (soporteNombre               !== undefined) data.soporteNombre               = soporteNombre;
-    if (soporteEmail                !== undefined) data.soporteEmail                = soporteEmail;
-    if (soporteTelefono             !== undefined) data.soporteTelefono             = soporteTelefono;
-    if (appNombre                   !== undefined) data.appNombre                   = appNombre;
-    if (avisoActivo                 !== undefined) data.avisoActivo                 = avisoActivo;
-    if (avisoTexto                  !== undefined) data.avisoTexto                  = avisoTexto;
-    if (emailAdmin !== undefined) data.emailAdmin = emailAdmin;
+    if (limiteAnualPorFarmacia       !== undefined) data.limiteAnualPorFarmacia       = limiteAnualPorFarmacia;
+    if (soporteNombre                !== undefined) data.soporteNombre                = soporteNombre;
+    if (soporteEmail                 !== undefined) data.soporteEmail                 = soporteEmail;
+    if (soporteTelefono              !== undefined) data.soporteTelefono              = soporteTelefono;
+    if (appNombre                    !== undefined) data.appNombre                    = appNombre;
+    if (avisoActivo                  !== undefined) data.avisoActivo                  = avisoActivo;
+    if (avisoTexto                   !== undefined) data.avisoTexto                   = avisoTexto;
+    if (emailAdmin                   !== undefined) data.emailAdmin                   = emailAdmin;
+    if (entregaDefaultDireccion      !== undefined) data.entregaDefaultDireccion      = entregaDefaultDireccion;
+    if (entregaDefaultCodigoPostal   !== undefined) data.entregaDefaultCodigoPostal   = entregaDefaultCodigoPostal;
+    if (entregaDefaultLocalidad      !== undefined) data.entregaDefaultLocalidad      = entregaDefaultLocalidad;
+    if (entregaDefaultProvincia      !== undefined) data.entregaDefaultProvincia      = entregaDefaultProvincia;
 
     if (Object.keys(data).length === 0) {
       return res.status(400).json({

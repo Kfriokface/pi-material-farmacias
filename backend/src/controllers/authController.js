@@ -11,12 +11,33 @@ const userSelect = {
   apellido1:    true,
   apellido2:    true,
   rol:          true,
-  zonaId:       true,
-  zona:         { select: { id: true, nombre: true } },
+  areaId:       true,
+  area: {
+    select: {
+      id: true,
+      nombre: true,
+      gerencias: {
+        select: {
+          gerencia: {
+            select: {
+              id: true,
+              nombre: true,
+              direccion: true,
+              codigoPostal: true,
+              localidad: true,
+              provincia: true,
+            },
+          },
+        },
+      },
+    },
+  },
   numeroSAP:    true,
   direccion:    true,
   codigoPostal: true,
   localidad:    true,
+  provincia:    true,
+  telefono:     true,
   avatar:       true,
   avatarEntraId: true,
   activo:       true,
@@ -104,13 +125,15 @@ async function login(req, res) {
 
     const token = generateToken(user);
 
-    // Devolver datos completos sin password
-    const { password: _, ...userWithoutPassword } = user;
+    const userData = await prisma.usuario.findUnique({
+      where: { id: user.id },
+      select: userSelect,
+    });
 
     res.json({
       success: true,
       token,
-      user: userWithoutPassword,
+      user: userData,
     });
   } catch (error) {
     console.error('Error en login:', error);
@@ -141,16 +164,18 @@ async function me(req, res) {
  */
 async function updateProfile(req, res) {
   try {
-    const { nombre, apellido1, apellido2, direccion, codigoPostal, localidad } = req.body;
+    const { nombre, apellido1, apellido2, direccion, codigoPostal, localidad, provincia, telefono } = req.body;
     const userId = req.user.id;
 
     const dataToUpdate = {};
-    if (nombre      !== undefined) dataToUpdate.nombre      = nombre;
-    if (apellido1   !== undefined) dataToUpdate.apellido1   = apellido1;
-    if (apellido2   !== undefined) dataToUpdate.apellido2   = apellido2;
-    if (direccion   !== undefined) dataToUpdate.direccion   = direccion;
+    if (nombre       !== undefined) dataToUpdate.nombre       = nombre;
+    if (apellido1    !== undefined) dataToUpdate.apellido1    = apellido1;
+    if (apellido2    !== undefined) dataToUpdate.apellido2    = apellido2;
+    if (direccion    !== undefined) dataToUpdate.direccion    = direccion;
     if (codigoPostal !== undefined) dataToUpdate.codigoPostal = codigoPostal;
-    if (localidad   !== undefined) dataToUpdate.localidad   = localidad;
+    if (localidad    !== undefined) dataToUpdate.localidad    = localidad;
+    if (provincia    !== undefined) dataToUpdate.provincia    = provincia;
+    if (telefono     !== undefined) dataToUpdate.telefono     = telefono;
 
     if (Object.keys(dataToUpdate).length === 0) {
       return res.status(400).json({

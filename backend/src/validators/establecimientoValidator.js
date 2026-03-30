@@ -1,60 +1,62 @@
 const { body, param, query } = require('express-validator');
 const { Lengua, TipoEstablecimiento } = require('../constants/enums');
 
+const PHONE_REGEX = /^[+]?[0-9\s\-().]{7,20}$/;
+
 const camposComunes = [
   body('nombre')
     .optional()
-    .trim()
+    .trim().escape()
     .isLength({ max: 200 })
     .withMessage('El nombre no puede exceder 200 caracteres'),
 
   body('nif')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 20 })
     .withMessage('El NIF no puede exceder 20 caracteres'),
 
   body('codigoInterno')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 50 })
     .withMessage('El código interno no puede exceder 50 caracteres'),
 
   body('codigoERP')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 50 })
     .withMessage('El código ERP no puede exceder 50 caracteres'),
 
   body('direccion')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 300 })
     .withMessage('La dirección no puede exceder 300 caracteres'),
 
   body('codigoPostal')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
-    .isLength({ max: 10 })
-    .withMessage('El código postal no puede exceder 10 caracteres'),
+    .trim().escape()
+    .isPostalCode('ES')
+    .withMessage('El código postal no es válido'),
 
   body('localidad')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 100 })
     .withMessage('La localidad no puede exceder 100 caracteres'),
 
   body('provincia')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 100 })
     .withMessage('La provincia no puede exceder 100 caracteres'),
 
   body('telefono')
     .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isLength({ max: 20 })
-    .withMessage('El teléfono no puede exceder 20 caracteres'),
+    .matches(PHONE_REGEX)
+    .withMessage('El teléfono no es válido'),
 
   body('lengua')
     .optional()
@@ -63,25 +65,25 @@ const camposComunes = [
 
   body('sanibrick')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 100 })
     .withMessage('Sanibrick no puede exceder 100 caracteres'),
 
   body('territoryDescr')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 200 })
     .withMessage('TerritoryDescr no puede exceder 200 caracteres'),
 
   body('panel')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 100 })
     .withMessage('Panel no puede exceder 100 caracteres'),
 
   body('ubicacion')
     .optional({ nullable: true, checkFalsy: true })
-    .trim()
+    .trim().escape()
     .isLength({ max: 500 })
     .withMessage('La ubicación no puede exceder 500 caracteres'),
 
@@ -103,7 +105,7 @@ const createEstablecimientoValidation = [
     .notEmpty()
     .withMessage('El nombre es obligatorio')
     .bail()
-    .trim()
+    .trim().escape()
     .isLength({ max: 200 })
     .withMessage('El nombre no puede exceder 200 caracteres'),
 
@@ -156,7 +158,7 @@ const listEstablecimientosValidation = [
 
   query('search')
     .optional()
-    .trim()
+    .trim().escape()
     .isLength({ min: 1, max: 100 })
     .withMessage('La búsqueda debe tener entre 1 y 100 caracteres'),
 ];

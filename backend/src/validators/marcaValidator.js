@@ -3,7 +3,7 @@ const { body, query } = require('express-validator');
 const createMarcaValidation = [
   body('nombre')
     .notEmpty().withMessage('El nombre es obligatorio').bail()
-    .trim()
+    .trim().escape()
     .isLength({ max: 100 }).withMessage('El nombre no puede exceder 100 caracteres'),
   body('activo')
     .optional()
@@ -14,7 +14,7 @@ const createMarcaValidation = [
 const updateMarcaValidation = [
   body('nombre')
     .optional()
-    .trim()
+    .trim().escape()
     .notEmpty().withMessage('El nombre no puede estar vacío').bail()
     .isLength({ max: 100 }).withMessage('El nombre no puede exceder 100 caracteres'),
   body('activo')
@@ -34,7 +34,7 @@ const listMarcaValidation = [
     .toInt(),
   query('search')
     .optional()
-    .trim()
+    .trim().escape()
     .isLength({ min: 1, max: 100 }).withMessage('search no puede exceder 100 caracteres'),
   query('activo')
     .optional()
