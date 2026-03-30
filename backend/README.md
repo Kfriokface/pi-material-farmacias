@@ -1,43 +1,8 @@
 # Material Farmacias — Backend
 
-API REST para la gestión de material promocional y corporativo para farmacias.
+API REST sobre la que funciona toda la aplicación. Gestiona la autenticación, los roles, el catálogo de materiales y el flujo completo de solicitudes.
 
----
-
-## Contexto del Proyecto Intermodular
-
-Este proyecto es el **Trabajo de Fin de Ciclo (Proyecto Intermodular)** del Grado Superior de Desarrollo de Aplicaciones Web.
-
-Parte de la base de un proyecto real en producción que gestiona material promocional para una red de farmacias. Para el PI, todos los datos (usuarios, establecimientos, áreas, etc.) son **ficticios**. El proyecto real opera con datos reales de la empresa, pero esta entrega académica utiliza una copia anonimizada con datos de prueba generados específicamente para este fin.
-
-El PI se entrega en dos fases:
-- **Fase 1 (actual):** Backend — API REST completa con autenticación, gestión de roles, catálogo de materiales y flujo de solicitudes.
-- **Fase 2 (desarrollo futuro):** Frontend — aplicación React que consume esta API.
-
----
-
-## Descripción de la aplicación
-
-La aplicación permite a una red de comerciales (gerentes y delegados) solicitar material promocional (vinilos, batas, folletos, etc.) para las farmacias que gestionan. Los administradores aprueban, gestionan y hacen seguimiento de cada solicitud hasta su entrega.
-
-### Roles
-
-| Rol | Descripción |
-|---|---|
-| **ADMIN** | Acceso total. Gestiona usuarios, áreas, materiales, proveedores y establecimientos. Aprueba o rechaza solicitudes y las mueve por el flujo de estados. |
-| **GERENTE** | Ve las farmacias y solicitudes de su área. Puede crear solicitudes para los establecimientos (farmacias y clínicas) de su área y para eventos, y marcarlas como completadas una vez recibido el material. |
-| **DELEGADO** | Ve únicamente sus farmacias asignadas y sus propias solicitudes. Puede crear solicitudes y marcarlas como completadas una vez recibido el material. |
-
-### Flujo de una solicitud
-
-```
-PENDIENTE → EN_FABRICACION → COMPLETADA
-              └→ RECHAZADA
-```
-
-- El **DELEGADO** o **GERENTE** crea la solicitud (`PENDIENTE`).
-- El **ADMIN** la aprueba (`EN_FABRICACION`) o rechaza. Al aprobar, se fija la dirección de entrega y se notifica al proveedor por email.
-- El **DELEGADO** o **GERENTE** marca su propia solicitud como completada cuando recibe el material (`COMPLETADA`).
+Para entender el contexto general de la aplicación consulta el [README principal](../README.md).
 
 ---
 
