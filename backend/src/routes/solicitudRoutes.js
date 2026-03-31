@@ -54,7 +54,7 @@ module.exports = router;
  *   name: Solicitudes
  *   description: |
  *     Gestión de solicitudes de material.
- *     Flujo de estados: PENDIENTE → EN_FABRICACION → ENVIADA → COMPLETADA (o RECHAZADA desde PENDIENTE).
+ *     Flujo de estados: PENDIENTE → EN_FABRICACION → COMPLETADA (o RECHAZADA desde PENDIENTE).
  *     DELEGADO solo ve sus solicitudes; GERENTE ve las de su zona; ADMIN ve todas.
  *
  * components:
@@ -63,7 +63,7 @@ module.exports = router;
  *       type: object
  *       properties:
  *         id:                       { type: integer, example: 1 }
- *         estado:                   { type: string, enum: [PENDIENTE, EN_FABRICACION, ENVIADA, COMPLETADA, RECHAZADA] }
+ *         estado:                   { type: string, enum: [PENDIENTE, EN_FABRICACION, COMPLETADA, RECHAZADA] }
  *         usuarioId:                { type: integer }
  *         establecimientoId:        { type: integer, nullable: true }
  *         eventoNombre:             { type: string, nullable: true }
@@ -140,7 +140,7 @@ module.exports = router;
  *         schema: { type: integer, default: 20 }
  *       - in: query
  *         name: estado
- *         schema: { type: string, enum: [PENDIENTE, EN_FABRICACION, ENVIADA, COMPLETADA, RECHAZADA] }
+ *         schema: { type: string, enum: [PENDIENTE, EN_FABRICACION, COMPLETADA, RECHAZADA] }
  *       - in: query
  *         name: search
  *         schema: { type: string }
@@ -298,7 +298,7 @@ module.exports = router;
  * /api/solicitudes/{id}/completar:
  *   patch:
  *     summary: Completar solicitud (ADMIN, GERENTE o DELEGADO propietario)
- *     description: Solo válido desde estado EN_FABRICACION o ENVIADA.
+ *     description: Solo válido desde estado EN_FABRICACION.
  *     tags: [Solicitudes]
  *     security:
  *       - bearerAuth: []
