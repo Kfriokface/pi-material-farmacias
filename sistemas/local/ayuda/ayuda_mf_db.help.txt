@@ -1,0 +1,68 @@
+
+######################################################################################################
+Ayuda Material Farmacias - Comandos de Base de Datos (PI)
+######################################################################################################
+
+BACKUP LOCAL:
+  mf_db_backup
+  - Genera un backup de la BD en /media/pi-material-farmacias/files/backups/mysql/
+  - Formato: bd__local__pi_material_farmacias__USUARIO__FECHA.sql.gz
+  - Comprimido con gzip
+
+RESTORE LOCAL:
+  mf_db_restore
+  - Restaura un backup desde /backups/mysql/
+  - Lista backups disponibles para seleccionar
+  - IMPORTANTE: Sobrescribe la BD actual
+
+MIGRACIONES:
+  mf_db_migrate
+  - Ejecuta migraciones pendientes de Prisma
+  - Equivale a: npx prisma migrate dev
+
+ACTUALIZAR BASE DE DATOS:
+  mf_db_update
+  - Ejecuta update de los migrates pendientes
+  - Equivale a: npx prisma migrate deploy
+
+RESET:
+  mf_db_reset
+  - Ejecuta reseteo de la base de datos
+  - Equivale a: npx prisma migrate reset --skip-seed
+
+SEED:
+  mf_db_seed
+  - Ejecuta el seed (carga datos iniciales)
+  - Crea datos que no llegan en el import_data
+  - Equivale a: npx prisma db seed
+
+IMPORT DATA:
+  mf_db_import_data
+  - Ejecuta el script de importación de datos desde los ficheros Excel
+  - Crea usuarios, establecimientos, zonas
+
+BACKUP REMOTO:
+  mf_db_store
+  - Sube backups locales al servidor remoto configurado en mf_vars.sh
+
+  mf_db_get
+  - Descarga backups desde el servidor remoto
+
+######################################################################################################
+Ejemplo de uso completo:
+
+1. Hacer backup local:
+   $ mf_db_backup
+
+2. Subir backup al servidor remoto:
+   $ mf_db_store
+
+3. En otro equipo, descargar backup:
+   $ mf_db_get
+
+4. Restaurar:
+   $ mf_db_restore
+
+######################################################################################################
+
+

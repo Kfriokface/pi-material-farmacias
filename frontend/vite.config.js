@@ -59,7 +59,7 @@ export default defineConfig({
     port: 5173,
     allowedHosts: [
       'localhost',
-      'dev.far.webconsultas.net',
+      'materiales.albertosancho.es',
     ],
   },
 })

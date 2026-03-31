@@ -1,0 +1,47 @@
+
+######################################################################################################
+Ayuda Material Farmacias - Comandos del Sistema (PI)
+ver /media/pi-material-farmacias/sistemas/local/ayuda/ayuda_mf.help.txt
+######################################################################################################
+
+NAVEGACIÓN:
+ - mf_ws_home              : Se posiciona en la raíz del workspace
+ - mf_backend_home         : Se posiciona en el backend
+ - mf_frontend_home        : Se posiciona en el frontend
+ - mf_files_home           : Se posiciona en la carpeta de files
+ - mf_backups_home         : Se posiciona en la carpeta de backups
+ - mf_backend_files_home   : Se posiciona en la carpeta de archivos del backend
+ - mf_scripts_home         : Se posiciona en la carpeta de scripts
+
+SERVICIOS:
+ - mf_services_start   : Inicia backend + frontend
+ - mf_services_stop    : Detiene backend + frontend
+ - mf_services_restart : Reinicia backend + frontend
+ - mf_services_logs    : Muestra logs de los servicios
+
+BASE DE DATOS:
+ - mf_db_migrate     : Ejecuta migraciones pendientes
+ - mf_db_reset       : Resetea la base de datos
+ - mf_db_seed        : Ejecuta el seed (datos iniciales)
+ - mf_db_import_data : Ejecuta el script de importación (import_data.js)
+ - mf_db_backup      : Realiza un backup de la base de datos
+ - mf_db_restore     : Restaura un backup
+ - mf_db_store       : Almacena backups en servidor remoto
+ - mf_db_get         : Descarga backups desde servidor remoto
+
+ARCHIVOS:
+ - mf_files_backup  : Realiza backup de archivos (avatars, materiales)
+ - mf_files_restore : Restaura backup de archivos
+ - mf_files_store   : Almacena backups en servidor remoto
+ - mf_files_get     : Descarga backups desde servidor remoto
+
+BUILDS:
+ - mf_build_local   : Build en modo development, genera el dist/ en local
+
+AYUDAS:
+ - ayuda_mf         : Esta ayuda
+ - ayuda_mf_db      : Ayuda específica de base de datos
+
+######################################################################################################
+
+
