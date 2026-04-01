@@ -42,7 +42,7 @@ export default function AppSolicitudForm() {
     altoCm:                  '',
     anchoCm:                 '',
     orientacion:             '',
-    lenguaPersonalizacion:   '',
+    lenguaPersonalizacion:   'ES',
     talla:                   '',
     personalizacionBata:     '',
     marcaId:                 '',
@@ -175,9 +175,7 @@ export default function AppSolicitudForm() {
           anchoCm:     formData.anchoCm    ? parseInt(formData.anchoCm)    : null,
           orientacion: material.orientacion || formData.orientacion || null,
         }),
-        ...(material.permitePersonalizar && {
-          lenguaPersonalizacion: formData.lenguaPersonalizacion || null,
-        }),
+        lenguaPersonalizacion: formData.lenguaPersonalizacion || 'ES',
         ...(material.permiteTalla && {
           talla: formData.talla || null,
         }),
@@ -479,7 +477,7 @@ export default function AppSolicitudForm() {
           )}
 
           {/* Personalización de idioma */}
-          {material.permitePersonalizar && (
+          {material.permitePersonalizar && material.lenguas && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Idioma del material <span className="text-red-500">*</span>
