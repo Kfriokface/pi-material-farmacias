@@ -22,8 +22,6 @@ export default function Login() {
     try {
       const response = await authService.login(formData.email, formData.password);
 
-      console.log('Login response:', response);
-
       if (response.success) {
         setAuth(response.user, response.token);
         if (response.user.rol === 'ADMIN') {

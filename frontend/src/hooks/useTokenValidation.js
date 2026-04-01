@@ -6,10 +6,7 @@ export default function useTokenValidation() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');  // leer DENTRO del effect
-    console.log('useTokenValidation:', { isAuthenticated, token: !!token });
-
     if (isAuthenticated && !token) {
-      console.log('No hay token en localStorage, cerrando sesión...');
       logout();
       return;
     }
@@ -19,7 +16,6 @@ export default function useTokenValidation() {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const expirado = payload.exp * 1000 < Date.now();
         if (expirado) {
-          console.log('Token expirado, cerrando sesión...');
           logout();
         }
       } catch (err) {
