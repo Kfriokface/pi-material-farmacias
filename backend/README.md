@@ -54,7 +54,10 @@ PORT=3000
 DATABASE_URL="mysql://usuario:password@localhost:3306/pi_material_farmacias"
 
 # Ruta local donde se almacenan los archivos subidos
+# Linux/Mac:
 FILES_PATH=/ruta/absoluta/al/backend/files
+# Windows (usar barras hacia adelante):
+# FILES_PATH=C:/Users/usuario/proyectos/pi-material-farmacias/backend/files
 
 # URL pública desde la que se sirven los archivos
 FILES_URL=http://localhost:3000/files

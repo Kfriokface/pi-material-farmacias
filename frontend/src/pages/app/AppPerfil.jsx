@@ -40,7 +40,7 @@ export default function AppPerfil() {
     setMessage('');
     try {
       const response = await authService.uploadAvatar(file);
-      updateUser({ avatar: response.data.avatar });
+      updateUser({ avatar: response.user.avatar });
       setMessage('Avatar actualizado correctamente');
       e.target.value = '';
     } catch (err) {

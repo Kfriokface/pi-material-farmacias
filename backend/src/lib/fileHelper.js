@@ -126,7 +126,11 @@ async function processImage(inputPath, outputDir, tipo = 'principal', deleteTemp
     .toFile(outputPath);
 
   if (deleteTemp) {
-    await fs.unlink(inputPath);
+    try {
+      await fs.unlink(inputPath);
+    } catch (e) {
+      console.warn(`No se pudo eliminar el archivo temporal: ${inputPath}`);
+    }
   }
 
   return filename;
