@@ -1,6 +1,5 @@
 const path = require('path');
 const fs = require('fs').promises;
-const fsSync = require('fs');
 const multer = require('multer');
 const sharp = require('sharp');
 
@@ -127,7 +126,7 @@ async function processImage(inputPath, outputDir, tipo = 'principal', deleteTemp
     .toFile(outputPath);
 
   if (deleteTemp) {
-    fsSync.unlinkSync(inputPath);
+    await fs.unlink(inputPath);
   }
 
   return filename;
