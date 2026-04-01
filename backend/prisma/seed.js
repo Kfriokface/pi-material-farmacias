@@ -1,6 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const path   = require('path');
+const fs     = require('fs').promises;
+const sharp  = require('sharp');
 const prisma = new PrismaClient();
 
 const {
@@ -9,15 +11,35 @@ const {
   PATHS,
 } = require('../src/lib/fileHelper');
 
-// Imágenes fuente
-const FILES_PATH = process.env.FILES_PATH || path.join(__dirname, 'files');
+// Imágenes fuente — se generan automáticamente si no existen
+const SEED_ASSETS = path.join(__dirname, 'seed-assets');
 const IMG_SRC = {
-  vinilo:          path.join(FILES_PATH, 'materiales', 'vinilo.jpg'),
-  bata:            path.join(FILES_PATH, 'materiales', 'bata.jpg'),
-  kitPromocional:  path.join(FILES_PATH, 'materiales', 'kit_promocional.jpg'),
-  rollUp:          path.join(FILES_PATH, 'materiales', 'roll-up.jpg'),
-  avatarDefault:   path.join(FILES_PATH, 'avatars', 'default.webp'),
+  vinilo:         path.join(SEED_ASSETS, 'vinilo.jpg'),
+  bata:           path.join(SEED_ASSETS, 'bata.jpg'),
+  kitPromocional: path.join(SEED_ASSETS, 'kit_promocional.jpg'),
+  rollUp:         path.join(SEED_ASSETS, 'roll-up.jpg'),
+  avatarDefault:  path.join(SEED_ASSETS, 'default.webp'),
 };
+
+// Genera imágenes placeholder en seed-assets/ si no existen
+async function ensureSeedAssets() {
+  await fs.mkdir(SEED_ASSETS, { recursive: true });
+  const placeholders = [
+    { file: IMG_SRC.vinilo,         w: 800, h: 600, bg: { r: 100, g: 149, b: 237 }, fmt: 'jpeg' },
+    { file: IMG_SRC.bata,           w: 800, h: 600, bg: { r: 144, g: 238, b: 144 }, fmt: 'jpeg' },
+    { file: IMG_SRC.kitPromocional, w: 800, h: 600, bg: { r: 255, g: 200, b: 100 }, fmt: 'jpeg' },
+    { file: IMG_SRC.rollUp,         w: 800, h: 600, bg: { r: 200, g: 160, b: 220 }, fmt: 'jpeg' },
+    { file: IMG_SRC.avatarDefault,  w: 400, h: 400, bg: { r: 180, g: 180, b: 180 }, fmt: 'webp'  },
+  ];
+  for (const { file, w, h, bg, fmt } of placeholders) {
+    try { await fs.access(file); }
+    catch {
+      await sharp({ create: { width: w, height: h, channels: 3, background: bg } })
+        [fmt]().toFile(file);
+      console.log(`  Placeholder generado: ${path.basename(file)}`);
+    }
+  }
+}
 
 async function procesarImagenAvatar(srcPath) {
   const filename = await processImage(srcPath, PATHS.avatars, 'avatar', false);
@@ -37,6 +59,8 @@ async function procesarImagenMaterial(srcPath) {
 
 async function main() {
   console.log('Iniciando seed...');
+  console.log('Generando imágenes de muestra...');
+  await ensureSeedAssets();
   await ensureDirectories();
 
   // ============================================
