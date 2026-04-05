@@ -71,14 +71,29 @@ ayuda_mf
 
 ## Configuración
 
-Las rutas del proyecto se calculan automáticamente a partir de la ubicación del repositorio. Solo es necesario revisar las credenciales de base de datos en `mf_vars.sh` si difieren de los valores por defecto:
+Toda la configuración se centraliza en `mf_vars.sh`.
+
+**Las rutas del proyecto se calculan automáticamente** a partir de la ubicación del repositorio — no es necesario editarlas.
+
+**Base de datos** — revisa estos valores si difieren de los de tu entorno:
 
 ```bash
 MF_DB_NAME="pi_material_farmacias"   # Nombre de la base de datos
 MF_DB_USER="root"                    # Usuario MySQL
+MF_DB_HOST="localhost"               # Host MySQL
+MF_DB_PORT="3306"                    # Puerto MySQL
 ```
 
-La contraseña de MySQL (`MF_DB_PASS`) se solicita de forma interactiva en cada operación que la requiere.
+La contraseña (`MF_DB_PASS`) se solicita de forma interactiva en cada operación que la requiere.
+
+**Servidor remoto** — necesario solo si vas a usar los comandos de sincronización (`mf_db_store`, `mf_db_get`, `mf_files_store`, `mf_files_get`):
+
+```bash
+MF_REMOTE_HOST=""      # IP o dominio del servidor remoto
+MF_REMOTE_PORT="22"    # Puerto SSH
+MF_REMOTE_USER=""      # Usuario SSH
+MF_REMOTE_PATH=""      # Ruta remota donde almacenar los backups
+```
 
 ## Flujo habitual
 

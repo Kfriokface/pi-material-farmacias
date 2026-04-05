@@ -26,3 +26,10 @@ MF_DB_PASS=""  # Se pedirá interactivamente
 
 # Usuario actual
 MF_USER=$(whoami)
+
+# Servidor remoto (para mf_db_store, mf_db_get, mf_files_store, mf_files_get)
+# Configura estos valores según tu entorno antes de usar los comandos de sincronización remota
+MF_REMOTE_HOST=""       # IP o dominio del servidor remoto
+MF_REMOTE_PORT="22"     # Puerto SSH
+MF_REMOTE_USER=""       # Usuario SSH
+MF_REMOTE_PATH=""       # Ruta remota donde almacenar los backups
