@@ -10,8 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MF_ROOT_SCRIPTS="$SCRIPT_DIR"
 
 # Verificar que estamos en la ubicación correcta
-if [[ ! "$SCRIPT_DIR" == *"/pi-material-farmacias/sistemas/local"* ]]; then
-  echo "ERROR: Este script debe ejecutarse desde /media/pi-material-farmacias/sistemas/local"
+if [[ ! "$SCRIPT_DIR" == *"/sistemas/local"* ]]; then
+  echo "ERROR: Este script debe ejecutarse desde el directorio sistemas/local del proyecto"
   exit 1
 fi
 
