@@ -7,7 +7,8 @@
 MF_ENV="local"
 
 # Rutas principales
-MF_ROOT_WS="/media/pi-material-farmacias"
+# MF_ROOT_SCRIPTS se exporta desde install.sh — deriva el resto a partir de él
+MF_ROOT_WS="$(dirname "$(dirname "$MF_ROOT_SCRIPTS")")"
 MF_ROOT_FILES="${MF_ROOT_WS}/files"
 MF_ROOT_CODE="${MF_ROOT_WS}"
 MF_ROOT_BACKEND="${MF_ROOT_CODE}/backend"
