@@ -36,11 +36,13 @@ PENDIENTE → EN_FABRICACION → COMPLETADA
 ```
 pi-material-farmacias/
 ├── backend/    # API REST (Node.js + Express + Prisma + MySQL)
-└── frontend/   # Aplicación web (React + Vite)
+├── frontend/   # Aplicación web (React + Vite)
+└── sistemas/   # Scripts Bash para operación y mantenimiento en local (Linux / WSL)
 ```
 
 - [backend/README.md](backend/README.md) — instalación y documentación de la API
 - [frontend/README.md](frontend/README.md) — instalación y configuración del frontend
+- [sistemas/local/README.md](sistemas/local/README.md) — scripts de operación en local
 
 ---
 
