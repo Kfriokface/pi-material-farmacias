@@ -12,13 +12,11 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.90.21",
     "axios": "^1.13.5",
     "libphonenumber-js": "^1.12.40",
     "pm2": "^6.0.14",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-hook-form": "^7.71.1",
     "react-router-dom": "^7.13.0",
     "zustand": "^5.0.11"
   },
