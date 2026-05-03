@@ -4,8 +4,6 @@ const multer = require('multer');
 const sharp = require('sharp');
 
 const FILES_PATH = process.env.FILES_PATH || path.join(__dirname, '../../files');
-console.log('FILES_PATH:', FILES_PATH);
-console.log('TEMP PATH:', path.join(FILES_PATH, 'temp'));
 const FILES_URL = process.env.FILES_URL || 'http://localhost:3000/files';
 
 // Formatos permitidos
